@@ -1,6 +1,6 @@
 #!/bin/bash -x
 
-ALPINE_VER="3.14"
+ALPINE_VER="3.14.5"
 DISTRO="balenalib/rpi-alpine:$ALPINE_VER"
 # Used for webmails
 QEMU="arm"
