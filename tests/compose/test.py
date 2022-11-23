@@ -38,6 +38,8 @@ def health_checks():
     for container in client.containers(all=True):
         #Perform "docker container inspect" on container based on container ID and save output to a dictionary
         container_inspect = client.inspect_container(container['Id']) #Dict
+        if not test_name in container_inspect['Name']:
+            continue
 
         if "Health" in container_inspect['State'].keys():
             if container_inspect['State']['Health']['Status'] == "healthy":
