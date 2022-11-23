@@ -323,8 +323,6 @@ jobs:
         run: sudo -- sh -c 'mkdir -p /mailu && cp -r tests/certs /mailu && chmod 600 /mailu/certs/*'
       - name: Test core suite
         run: |
-          unset DOCKER_HOST
-          env
           python tests/compose/test.py core 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
@@ -411,8 +409,6 @@ jobs:
         run: sudo -- sh -c 'mkdir -p /mailu && cp -r tests/certs /mailu && chmod 600 /mailu/certs/*'
       - name: Test fetch
         run: |
-          unset DOCKER_HOST
-          env
           python tests/compose/test.py fetchmail 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
@@ -499,8 +495,6 @@ jobs:
         run: sudo -- sh -c 'mkdir -p /mailu && cp -r tests/certs /mailu && chmod 600 /mailu/certs/*'
       - name: Test clamvav
         run: |
-          unset DOCKER_HOST
-          env
           python tests/compose/test.py filters 3
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
@@ -587,8 +581,6 @@ jobs:
         run: sudo -- sh -c 'mkdir -p /mailu && cp -r tests/certs /mailu && chmod 600 /mailu/certs/*'
       - name: Test rainloop
         run: |
-          unset DOCKER_HOST
-          env
           python tests/compose/test.py rainloop 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
@@ -675,8 +667,6 @@ jobs:
         run: sudo -- sh -c 'mkdir -p /mailu && cp -r tests/certs /mailu && chmod 600 /mailu/certs/*'
       - name: Test roundcube
         run: |
-          unset DOCKER_HOST
-          env
           python tests/compose/test.py roundcube 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
@@ -763,8 +753,6 @@ jobs:
         run: sudo -- sh -c 'mkdir -p /mailu && cp -r tests/certs /mailu && chmod 600 /mailu/certs/*'
       - name: Test webdav
         run: |
-          unset DOCKER_HOST
-          env
           python tests/compose/test.py webdav 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
