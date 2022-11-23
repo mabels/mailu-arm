@@ -52,14 +52,21 @@ cat > /usr/bin/docker <<EOF3
 export DOCKER_HOST=$DOCKER_HOST
 exec /usr/bin/docker-orig \\\$@
 EOF3
+mv /usr/bin/docker-compose /usr/bin/docker-compose-orig
+cat > /usr/bin/docker-compose <<EOF4
+#!/bin/bash
+export DOCKER_HOST=$DOCKER_HOST
+exec /usr/bin/docker-compose-orig \\\$@
+EOF4
 cat > /usr/bin/docker-host-env <<EOF3
 #!/bin/bash
 echo "$DOCKER_HOST"
 export DOCKER_HOST=$DOCKER_HOST
 EOF3
-chmod +x /usr/bin/docker /usr/bin/docker-host-env
+chmod +x /usr/bin/docker /usr/bin/docker-compose /usr/bin/docker-host-env
 echo "DOCKER_HOST=$DOCKER_HOST"
 docker ps
+docker-compose version
 su runner -c 'cd /home/runner/actions-runner && /home/runner/actions-runner/start-worker.sh ./run.sh'
 EOF1
 while true
