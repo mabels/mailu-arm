@@ -88,7 +88,10 @@ jobs:
           #done
 
       - name: set docker host
+        shell: bash
         run: |
+          ls -la /usr/bin/docker*
+          /usr/bin/docker-host-env
           echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
           cat $GITHUB_ENV
 
