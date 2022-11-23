@@ -274,6 +274,14 @@ jobs:
     needs:
       - build
     steps:
+      - name: set docker host
+        shell: bash
+        run: |
+          ls -la /usr/bin/docker*
+          /usr/bin/docker-host-env
+          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
       - uses: actions/checkout@v2
         with:
           # fetch-depth 0 is required to also retrieve all tags.
@@ -360,6 +368,14 @@ jobs:
     needs:
       - build
     steps:
+      - name: set docker host
+        shell: bash
+        run: |
+          ls -la /usr/bin/docker*
+          /usr/bin/docker-host-env
+          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
       - uses: actions/checkout@v2
         with:
           # fetch-depth 0 is required to also retrieve all tags.
@@ -446,6 +462,14 @@ jobs:
     needs:
       - build
     steps:
+      - name: set docker host
+        shell: bash
+        run: |
+          ls -la /usr/bin/docker*
+          /usr/bin/docker-host-env
+          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
       - uses: actions/checkout@v2
         with:
           # fetch-depth 0 is required to also retrieve all tags.
@@ -532,6 +556,14 @@ jobs:
     needs:
       - build
     steps:
+      - name: set docker host
+        shell: bash
+        run: |
+          ls -la /usr/bin/docker*
+          /usr/bin/docker-host-env
+          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
       - uses: actions/checkout@v2
         with:
           # fetch-depth 0 is required to also retrieve all tags.
@@ -618,6 +650,14 @@ jobs:
     needs:
       - build
     steps:
+      - name: set docker host
+        shell: bash
+        run: |
+          ls -la /usr/bin/docker*
+          /usr/bin/docker-host-env
+          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
       - uses: actions/checkout@v2
         with:
           # fetch-depth 0 is required to also retrieve all tags.
@@ -704,6 +744,14 @@ jobs:
     needs:
       - build
     steps:
+      - name: set docker host
+        shell: bash
+        run: |
+          ls -la /usr/bin/docker*
+          /usr/bin/docker-host-env
+          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
       - uses: actions/checkout@v2
         with:
           # fetch-depth 0 is required to also retrieve all tags.
