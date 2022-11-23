@@ -240,7 +240,7 @@ jobs:
           DOCKER_ORG: ${{ env.DOCKER_ORG }}
         run: docker-compose -f tests/build.yml build
       - name: Save all docker images
-        run: docker save ${{ env.DOCKER_ORG }}/admin ${{ env.DOCKER_ORG }}/clamav ${{ env.DOCKER_ORG }}/docs ${{ env.DOCKER_ORG }}/dovecot ${{ env.DOCKER_ORG }}/fetchmail ${{ env.DOCKER_ORG }}/nginx ${{ env.DOCKER_ORG }}/none ${{ env.DOCKER_ORG }}/postfix ${{ env.DOCKER_ORG }}/radicale ${{ env.DOCKER_ORG }}/rainloop ${{ env.DOCKER_ORG }}/roundcube ${{ env.DOCKER_ORG }}/rspamd ${{ env.DOCKER_ORG }}/setup ${{ env.DOCKER_ORG }}/traefik-certdumper ${{ env.DOCKER_ORG }}/unbound -o /images/images.tar.gz
+        run: docker save ${{ env.DOCKER_ORG }}/admin ${{ env.DOCKER_ORG }}/clamav ${{ env.DOCKER_ORG }}/docs ${{ env.DOCKER_ORG }}/dovecot ${{ env.DOCKER_ORG }}/fetchmail ${{ env.DOCKER_ORG }}/nginx ${{ env.DOCKER_ORG }}/none ${{ env.DOCKER_ORG }}/postfix ${{ env.DOCKER_ORG }}/radicale ${{ env.DOCKER_ORG }}/rainloop ${{ env.DOCKER_ORG }}/roundcube ${{ env.DOCKER_ORG }}/rspamd ${{ env.DOCKER_ORG }}/setup ${{ env.DOCKER_ORG }}/traefik-certdumper ${{ env.DOCKER_ORG }}/unbound -o /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
 
   test-core:
     name: Perform core tests
@@ -312,7 +312,7 @@ jobs:
           path: /images
           key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
       - name: Load docker images
-        run: docker load -i /images/images.tar.gz
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
@@ -395,7 +395,7 @@ jobs:
           path: /images
           key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
       - name: Load docker images
-        run: docker load -i /images/images.tar.gz
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
@@ -478,7 +478,7 @@ jobs:
           path: /images
           key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
       - name: Load docker images
-        run: docker load -i /images/images.tar.gz
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
@@ -561,7 +561,7 @@ jobs:
           path: /images
           key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
       - name: Load docker images
-        run: docker load -i /images/images.tar.gz
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
@@ -644,7 +644,7 @@ jobs:
           path: /images
           key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
       - name: Load docker images
-        run: docker load -i /images/images.tar.gz
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
@@ -727,7 +727,7 @@ jobs:
           path: /images
           key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
       - name: Load docker images
-        run: docker load -i /images/images.tar.gz
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
@@ -819,7 +819,9 @@ jobs:
           key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
       - name: Load docker images
         if: ${{ env.BRANCH != 'staging' }}
-        run: docker load -i /images/images.tar.gz
+        run: |
+          docker load -i /images/images-${{ env.PINNED_MAILU_VERSION }}_x86_64.tar.gz
+        : docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}_aarch64.tar.gz
       - name: Deploy built docker images
         env:
           DOCKER_UN: ${{ secrets.Docker_Login }}

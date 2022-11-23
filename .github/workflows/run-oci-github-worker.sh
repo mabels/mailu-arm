@@ -27,7 +27,7 @@ then
    [ -z "$AMI" ] && AMI=$(node .github/workflows/oci-find-image.js $ARCH)
    [ -z "$DOCKER_TAG" ] && DOCKER_TAG=ghrunner-latest
    [ -z "$NECKLESS_URL" ] && NECKLESS_URL=https://github.com/mabels/neckless/releases/download/v0.1.15/neckless_0.1.15_Linux_x86_64.tar.gz
-   SHAPE='{"ocpus":16.0,"memoryInGBs":16.0,"baselineOcpuUtilization":"BASELINE_1_8"}'
+   SHAPE='{"ocpus":4.0,"memoryInGBs":4.0,"baselineOcpuUtilization":"BASELINE_1_8"}'
 elif [ $ARCH = "aarch64" ]
 then
    INSTANCE_TYPE=VM.Standard.A1.Flex
@@ -35,7 +35,7 @@ then
    [ -z "$AMI" ] && AMI=$(node .github/workflows/oci-find-image.js $ARCH)
    [ -z "$DOCKER_TAG" ] && DOCKER_TAG=ghrunner-latest
    [ -z "$NECKLESS_URL" ] && NECKLESS_URL=https://github.com/mabels/neckless/releases/download/v0.1.15/neckless_0.1.15_Linux_arm64.tar.gz
-   SHAPE='{"ocpus":16.0,"memoryInGBs":16.0}'
+   SHAPE='{"ocpus":4.0,"memoryInGBs":4.0}'
 else
    echo "the is no INSTANCE_TYPE known for the arch $ARCH"
    exit 1
