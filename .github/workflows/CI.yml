@@ -97,7 +97,18 @@ jobs:
     runs-on: ubuntu-latest
     name: Cleanup
     if: always()
-    needs: [prepare]
+    needs: 
+      - prepare
+      - build
+      - test-core
+      - test-fetchmail
+      - test-filters
+      - test-rainloop
+      - test-roundcube
+      - test-webdav
+      - deploy
+      - tag-release
+      - ci-success
     steps:
       - uses: actions/checkout@v3
 
