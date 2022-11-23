@@ -64,10 +64,10 @@ cat > ./user-data <<EOF
 export HOME=/root
 
 ret=1
-while [ $ret -ne 0 ]
+while [ "\$ret" -ne 0 ]
 do
   apt update -y && apt upgrade -y && apt install -y jq curl docker.io
-  ret=$?
+  ret=\$?
   sleep 5
 done
 
