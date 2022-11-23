@@ -1,5 +1,5 @@
 #!/bin/bash
-PROJECT=developers-paradise
+PROJECT=mailu-arm
 USER=mabels
 REV=$1
 if [ -z "$REV" ]
@@ -63,9 +63,13 @@ cat > ./user-data <<EOF
 #!/bin/bash -x
 export HOME=/root
 
-apt update -y
-apt upgrade -y
-apt install -y jq curl docker.io
+ret=1
+while [ $ret -ne 0 ]
+do
+  apt update -y && apt upgrade -y && apt install -y jq curl docker.io
+  ret=$?
+  sleep 5
+done
 
 GITHUB_ACCESS_TOKEN=$GITHUB_ACCESS_TOKEN
 ARCH=$ARCH
