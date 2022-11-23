@@ -87,18 +87,6 @@ jobs:
           #  echo "Special EC2-Worker instances: $worker -- $(jq -r '.Instances[0].InstanceId' < $i)"
           #done
 
-      - name: set docker host
-        shell: bash
-        run: |
-          ls -la /usr/bin/docker*
-          /usr/bin/docker-host-env
-          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
-          cat $GITHUB_ENV
-
-      - name: verify docker host
-        run: |
-          echo "DOCKER_HOST=$DOCKER_HOST"
-
       - name: worker-cleanup
         uses: actions/upload-artifact@v3
         with:
@@ -184,6 +172,19 @@ jobs:
         with:
           # fetch-depth 0 is required to also retrieve all tags.
           fetch-depth: 0
+
+      - name: set docker host
+        shell: bash
+        run: |
+          ls -la /usr/bin/docker*
+          /usr/bin/docker-host-env
+          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
+      - name: verify docker host
+        run: |
+          echo "DOCKER_HOST=$DOCKER_HOST"
+
       - name: Extract branch name
         shell: bash
         run: |
