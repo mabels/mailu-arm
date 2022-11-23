@@ -821,7 +821,7 @@ jobs:
         if: ${{ env.BRANCH != 'staging' }}
         run: |
           docker load -i /images/images-${{ env.PINNED_MAILU_VERSION }}_x86_64.tar.gz
-        : docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}_aarch64.tar.gz
+          docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}_aarch64.tar.gz
       - name: Deploy built docker images
         env:
           DOCKER_UN: ${{ secrets.Docker_Login }}
