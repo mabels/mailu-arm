@@ -4,7 +4,7 @@ const cmd = 'oci  compute image list --compartment-id ocid1.tenancy.oc1..aaaaaaa
 
 const findArm = process.argv[process.argv.length-1]
 
-if (findArm.match('arm')) {
+if (findArm.match('arm') || findArm.match('aarch')) {
   function filter(i) {
 	return !!i["display-name"].match('aarch64')
   } 
@@ -25,5 +25,5 @@ exec(cmd, (error, stdout, stderr) => {
         return;
     }
     const result = JSON.parse(stdout);
-    console.log(result.data.filter(filter)[0].id)
+    process.stdout.write(result.data.filter(filter)[0].id)
 });

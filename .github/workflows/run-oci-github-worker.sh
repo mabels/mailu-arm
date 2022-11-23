@@ -56,6 +56,9 @@ then
    exit 1
 fi
 
+node .github/workflows/oci-find-image.js $ARCH
+echo $AMI
+
 cat > ./user-data <<EOF
 #!/bin/bash -x
 export HOME=/root
