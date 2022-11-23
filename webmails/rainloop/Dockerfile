@@ -1,9 +1,10 @@
 ARG ARCH=""
+ARG DISTRO_VERSION="3.15"
 
 # NOTE: only add file if building for arm
-FROM ${ARCH}alpine:3.16
+FROM ${ARCH}alpine:${DISTRO_VERSION}
 ARG VERSION
-ONBUILD COPY --from=balenalib/rpi-alpine:3.16 /usr/bin/qemu-arm-static /usr/bin/qemu-arm-static
+#ONBUILD COPY --from=balenalib/rpi-alpine: /usr/bin/qemu-arm-static /usr/bin/qemu-arm-static
 
 ENV TZ Etc/UTC
 

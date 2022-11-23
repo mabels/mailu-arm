@@ -1,9 +1,9 @@
 # NOTE: only add qemu-arm-static if building for arm
 ARG ARCH=""
 ARG QEMU=other
-FROM ${ARCH}php:8.0-apache as build_arm
-ONBUILD COPY --from=balenalib/rpi-alpine:3.16 /usr/bin/qemu-arm-static /usr/bin/qemu-arm-static
-FROM ${ARCH}php:8.0-apache as build_other
+#FROM ${ARCH}php:8.0-apache as build_arm
+#ONBUILD COPY --from=balenalib/rpi-alpine:3.15 /usr/bin/qemu-arm-static /usr/bin/qemu-arm-static
+FROM ${ARCH}php:8-apache as build_other
 
 
 FROM build_${QEMU}

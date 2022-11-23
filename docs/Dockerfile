@@ -1,5 +1,5 @@
 # Convert .rst files to .html in temporary build container
-FROM python:alpine3.16 AS build
+FROM python:alpine AS build
 
 ARG version=master
 ENV VERSION=$version
