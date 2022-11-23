@@ -215,15 +215,17 @@ jobs:
         run: |
           echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
           echo "PINNED_MAILU_ARCH_VERSION=$GITHUB_SHA_$(uname -m)" >> $GITHUB_ENV
-      - name: Create folder for storing images
-        run: |
-          sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-      - name: Configure images folder for caching
-        uses: actions/cache@v2
-        with:
-          path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
+#     - name: Create folder for storing images
+#       run: |
+#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#     - name: Configure images folder for caching
+#       uses: actions/cache@v3
+#       with:
+#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
+      - name: Docker images
+        run: docker images
       - name: Check docker-compose version
         run: docker-compose -v
       - name: Login docker
@@ -239,8 +241,8 @@ jobs:
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
           DOCKER_ORG: ${{ env.DOCKER_ORG }}
         run: docker-compose -f tests/build.yml build
-      - name: Save all docker images
-        run: docker save ${{ env.DOCKER_ORG }}/admin ${{ env.DOCKER_ORG }}/clamav ${{ env.DOCKER_ORG }}/docs ${{ env.DOCKER_ORG }}/dovecot ${{ env.DOCKER_ORG }}/fetchmail ${{ env.DOCKER_ORG }}/nginx ${{ env.DOCKER_ORG }}/none ${{ env.DOCKER_ORG }}/postfix ${{ env.DOCKER_ORG }}/radicale ${{ env.DOCKER_ORG }}/rainloop ${{ env.DOCKER_ORG }}/roundcube ${{ env.DOCKER_ORG }}/rspamd ${{ env.DOCKER_ORG }}/setup ${{ env.DOCKER_ORG }}/traefik-certdumper ${{ env.DOCKER_ORG }}/unbound -o /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+#     - name: Save all docker images
+#       run: docker save ${{ env.DOCKER_ORG }}/admin ${{ env.DOCKER_ORG }}/clamav ${{ env.DOCKER_ORG }}/docs ${{ env.DOCKER_ORG }}/dovecot ${{ env.DOCKER_ORG }}/fetchmail ${{ env.DOCKER_ORG }}/nginx ${{ env.DOCKER_ORG }}/none ${{ env.DOCKER_ORG }}/postfix ${{ env.DOCKER_ORG }}/radicale ${{ env.DOCKER_ORG }}/rainloop ${{ env.DOCKER_ORG }}/roundcube ${{ env.DOCKER_ORG }}/rspamd ${{ env.DOCKER_ORG }}/setup ${{ env.DOCKER_ORG }}/traefik-certdumper ${{ env.DOCKER_ORG }}/unbound -o /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
 
   test-core:
     name: Perform core tests
@@ -302,17 +304,19 @@ jobs:
         run: |
           echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
           echo "PINNED_MAILU_ARCH_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-      - name: Create folder for storing images
-        run: |
-          sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-      - name: Configure images folder for caching
-        uses: actions/cache@v2
-        with:
-          path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
+#     - name: Create folder for storing images
+#       run: |
+#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#     - name: Configure images folder for caching
+#       uses: actions/cache@v3
+#       with:
+#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
+#     - name: Load docker images
+#         run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
       - name: Load docker images
-        run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+          run: docker images
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
@@ -388,17 +392,19 @@ jobs:
         run: |
           echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
           echo "PINNED_MAILU_ARCH_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-      - name: Create folder for storing images
-        run: |
-          sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-      - name: Configure images folder for caching
-        uses: actions/cache@v2
-        with:
-          path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-      - name: Load docker images
-        run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+#     - name: Create folder for storing images
+#       run: |
+#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#     - name: Configure images folder for caching
+#       uses: actions/cache@v3
+#       with:
+#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
+#     - name: Load docker images
+#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Docker images
+        run: docker images
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
@@ -474,17 +480,19 @@ jobs:
         run: |
           echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
           echo "PINNED_MAILU_ARCH_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-      - name: Create folder for storing images
-        run: |
-          sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-      - name: Configure images folder for caching
-        uses: actions/cache@v2
-        with:
-          path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-      - name: Load docker images
-        run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+#     - name: Create folder for storing images
+#       run: |
+#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#     - name: Configure images folder for caching
+#       uses: actions/cache@v3
+#       with:
+#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
+#     - name: Load docker images
+#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Docker images
+        run: docker images
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
@@ -560,17 +568,19 @@ jobs:
         run: |
           echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
           echo "PINNED_MAILU_ARCH_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-      - name: Create folder for storing images
-        run: |
-          sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-      - name: Configure images folder for caching
-        uses: actions/cache@v2
-        with:
-          path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-      - name: Load docker images
-        run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+#     - name: Create folder for storing images
+#       run: |
+#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#     - name: Configure images folder for caching
+#       uses: actions/cache@v3
+#       with:
+#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
+#     - name: Load docker images
+#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Docker images
+        run: docker images
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
@@ -646,17 +656,19 @@ jobs:
         run: |
           echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
           echo "PINNED_MAILU_ARCH_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-      - name: Create folder for storing images
-        run: |
-          sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-      - name: Configure images folder for caching
-        uses: actions/cache@v2
-        with:
-          path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-      - name: Load docker images
-        run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+#     - name: Create folder for storing images
+#       run: |
+#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#     - name: Configure images folder for caching
+#       uses: actions/cache@v3
+#       with:
+#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
+#     - name: Load docker images
+#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Docker images
+        run: docker images
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
@@ -732,17 +744,19 @@ jobs:
         run: |
           echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
           echo "PINNED_MAILU_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-      - name: Create folder for storing images
-        run: |
-          sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-      - name: Configure images folder for caching
-        uses: actions/cache@v2
-        with:
-          path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-      - name: Load docker images
-        run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+#     - name: Create folder for storing images
+#       run: |
+#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#     - name: Configure images folder for caching
+#       uses: actions/cache@v3
+#       with:
+#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
+#     - name: Load docker images
+#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Docker images
+        run: docker images
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
@@ -824,21 +838,23 @@ jobs:
         run: |
           echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
           echo "PINNED_MAILU_ARCH_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-      - name: Create folder for storing images
-        run: |
-          sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-      - name: Configure images folder for caching
-        # For staging we do not deploy images. So we do not have to load them from cache.
-        if: ${{ env.BRANCH != 'staging' }}
-        uses: actions/cache@v2
-        with:
-          path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-          key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-      - name: Load docker images
-        if: ${{ env.BRANCH != 'staging' }}
-        run: |
-          docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+#     - name: Create folder for storing images
+#       run: |
+#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#     - name: Configure images folder for caching
+#       # For staging we do not deploy images. So we do not have to load them from cache.
+#       if: ${{ env.BRANCH != 'staging' }}
+#       uses: actions/cache@v3
+#       with:
+#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
+#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
+#     - name: Load docker images
+#       if: ${{ env.BRANCH != 'staging' }}
+#       run: |
+#         docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Docker images
+        run: docker images
       - name: Deploy built docker images
         env:
           DOCKER_UN: ${{ secrets.Docker_Login }}
