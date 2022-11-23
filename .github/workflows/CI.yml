@@ -395,7 +395,7 @@ jobs:
           path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
           key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
       - name: Load docker images
-        run: docker load -i /images${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+        run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
       - name: Copy all certs
