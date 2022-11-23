@@ -1,5 +1,5 @@
 #!/bin/bash
-PROJECT=developers-paradise
+PROJECT=mailu-arm
 USER=mabels
 REV=$1
 if [ -z "$REV" ]
