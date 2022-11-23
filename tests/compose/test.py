@@ -5,13 +5,18 @@ import docker
 from colorama import Fore, Style
 import subprocess
 
+
 # Declare variables for service name and sleep time
 test_name=sys.argv[1]
 timeout=int(sys.argv[2])
 test_path="tests/compose/" + test_name + "/"
 compose_file=test_path + "docker-compose.yml"
 
-client = docker.APIClient(base_url='unix://var/run/docker.sock')
+base_url = 'unix://var/run/docker.sock'
+if os.environ.get('DOCKER_HOST') is not None:
+    base_url = os.environ.get('DOCKER_HOST')
+
+client = docker.APIClient(base_url=base_url)
 
 containers = []
 

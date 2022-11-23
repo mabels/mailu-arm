@@ -69,28 +69,28 @@ docker ps
 docker-compose version
 su runner -c 'cd /home/runner/actions-runner && /home/runner/actions-runner/start-worker.sh ./run.sh'
 EOF1
+apt install -y parallel
+cat > /docker-run.sh <<EOF3
+#!/bin/bash -x
+exec docker run \
+             -v /tmp/start.sh:/tmp/start.sh \
+             -e DOCKER_HOST=$DOCKER_HOST \
+             -e GITHUB_ACCESS_TOKEN="$GITHUB_ACCESS_TOKEN" \
+             -e RUNNER_NAME="dp-$ARCH-$REV-$i --ephemeral" \
+             -e CONFIG_OPTS="--ephemeral" \
+             -e RUNNER_LABELS="$REV" \
+             -e RUNNER_REPOSITORY_URL=https://github.com/${USER}/${PROJECT} \
+             public.ecr.aws/mabels/developers-paradise:$DOCKER_TAG \
+             bash /tmp/start.sh
+EOF3
+chmod 755 /docker-run.sh
 while true
 do
   docker pull public.ecr.aws/mabels/developers-paradise:$DOCKER_TAG
   retVal=$?
   if [ $retVal -eq 0 ]
   then
-	  for i in $(seq 7)
-	  do
-		  docker run -d \
-			     -v /tmp/start.sh:/tmp/start.sh \
-			     -e DOCKER_HOST=$DOCKER_HOST \
-			     -e GITHUB_ACCESS_TOKEN="$GITHUB_ACCESS_TOKEN" \
-			     -e RUNNER_NAME="dp-$ARCH-$REV-$i --ephemeral" \
-			     -e CONFIG_OPTS="--ephemeral" \
-			     -e RUNNER_LABELS="$REV" \
-			     -e RUNNER_REPOSITORY_URL=https://github.com/${USER}/${PROJECT} \
-			     public.ecr.aws/mabels/developers-paradise:$DOCKER_TAG \
-			     bash /tmp/start.sh 
-	   done
-	   sleep 3600 
-	   poweroff
-	   exit 0
-   fi
-   sleep 5
+	yes | parallel -j 8 --pipe /docker-run.sh
+  fi
+  sleep 1
 done
