@@ -58,12 +58,17 @@ cat > /tmp/start.sh <<EOF1
 #export DOCKER_HOST=$DOCKER_HOST
 #exec /usr/bin/docker-compose-orig \\\$@
 #EOF4
-#cat > /usr/bin/docker-host-env <<EOF3
-##!/bin/bash
-#echo "$DOCKER_HOST"
-#export DOCKER_HOST=$DOCKER_HOST
-#EOF3
+cat > /usr/bin/docker-host-env <<EOF3
+#!/bin/bash
+if [ -z "$DOCKER_HOST" ]
+then
+  DOCKER_HOST="unix:///var/run/docker.sock"
+fi
+echo "$DOCKER_HOST"
+export DOCKER_HOST=$DOCKER_HOST
+EOF3
 #chmod +x /usr/bin/docker /usr/bin/docker-compose /usr/bin/docker-host-env
+chmod +x /usr/bin/docker-host-env
 #echo "DOCKER_HOST=$DOCKER_HOST"
 unset DOCKER_HOST
 /usr/bin/dockerd --host=unix:///var/run/docker.sock &
