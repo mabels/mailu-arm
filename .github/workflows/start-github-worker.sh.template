@@ -1,48 +1,48 @@
-stop=1
-systemctl start docker.service
-while [ $stop -ne 0 ]
-do
-  docker network ls
-  docker network inspect bridge | tee out.json
-  stop=$?
-  if [ $stop = 0 ]
-  then
-    bindif=$(jq -r '.[0].Options."com.docker.network.bridge.name"' < out.json)
-    bindip=$(ip -j a l  dev $bindif | jq -r '.[0].addr_info[0].local')
-    if [ $bindip = "null" ]
-    then
-      stop=1
-    fi
-    echo "Binding: $bindip:$bindif"
-  fi
-  rm -f out.json
-  if [ $stop = 0 ]
-  then
-    mkdir -p /etc/systemd/system/docker.service.d
-    cat >/etc/systemd/system/docker.service.d/override.conf <<EOF2
-[Service]
-ExecStart=
-ExecStart=/usr/bin/dockerd -H fd:// -H tcp://$bindip:2376 --containerd=/run/containerd/containerd.sock
-EOF2
-    iptables -I INPUT -p tcp -d $bindip -m state --state NEW -m tcp --dport 2376 -j ACCEPT
-    systemctl stop docker.service
-    systemctl daemon-reload
-    systemctl start docker.service
-    waitDocker=1
-    while [ $waitDocker -ne 0 ]
-    do
-      DOCKER_HOST=tcp://$bindip:2376 docker ps
-      waitDocker=$?
-      if [ $waitDocker -ne 0 ]
-      then
-        sleep 5
-      fi
-    done
-    export DOCKER_HOST=tcp://$bindip:2376
-  else
-    sleep 5
-  fi
-done
+#stop=1
+#systemctl start docker.service
+#while [ $stop -ne 0 ]
+#do
+#  docker network ls
+#  docker network inspect bridge | tee out.json
+#  stop=$?
+#  if [ $stop = 0 ]
+#  then
+#    bindif=$(jq -r '.[0].Options."com.docker.network.bridge.name"' < out.json)
+#    bindip=$(ip -j a l  dev $bindif | jq -r '.[0].addr_info[0].local')
+#    if [ $bindip = "null" ]
+#    then
+#      stop=1
+#    fi
+#    echo "Binding: $bindip:$bindif"
+#  fi
+#  rm -f out.json
+#  if [ $stop = 0 ]
+#  then
+#    mkdir -p /etc/systemd/system/docker.service.d
+#    cat >/etc/systemd/system/docker.service.d/override.conf <<EOF2
+#[Service]
+#ExecStart=
+#ExecStart=/usr/bin/dockerd -H fd:// -H tcp://$bindip:2376 --containerd=/run/containerd/containerd.sock
+#EOF2
+#    iptables -I INPUT -p tcp -d $bindip -m state --state NEW -m tcp --dport 2376 -j ACCEPT
+#    systemctl stop docker.service
+#    systemctl daemon-reload
+#    systemctl start docker.service
+#    waitDocker=1
+#    while [ $waitDocker -ne 0 ]
+#    do
+#      DOCKER_HOST=tcp://$bindip:2376 docker ps
+#      waitDocker=$?
+#      if [ $waitDocker -ne 0 ]
+#      then
+#        sleep 5
+#      fi
+#    done
+#    export DOCKER_HOST=tcp://$bindip:2376
+#  else
+#    sleep 5
+#  fi
+#done
 
 cat > /tmp/start.sh <<EOF1
 #!/bin/bash
