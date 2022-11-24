@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Cleanup
     if: always()
-    needs: 
+    needs:
       - prepare
       - build
       - test-core
@@ -220,8 +220,8 @@ jobs:
         if: ${{ env.BRANCH == 'staging' }}
         shell: bash
         run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV      
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV      
+          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
+          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
       - name: Derive PINNED_MAILU_VERSION for master
         if: ${{ env.BRANCH == 'master' }}
         shell: bash
@@ -319,8 +319,8 @@ jobs:
         if: ${{ env.BRANCH == 'staging' }}
         shell: bash
         run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV          
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV          
+          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
+          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
       - name: Derive PINNED_MAILU_VERSION for master
         if: ${{ env.BRANCH == 'master' }}
         shell: bash
@@ -344,11 +344,16 @@ jobs:
         run: docker images
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
-      - name: Copy all certs
-        run: sudo -- sh -c 'mkdir -p /mailu && cp -r tests/certs /mailu && chmod 600 /mailu/certs/*'
+      - name: Prepare cert volume
+        run: |
+          bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
+          echo "volumes:" >> tests/compose/core/docker-compose.yml
+          echo "  certs-${{ github.job }}:" >> tests/compose/core/docker-compose.yml
+          echo "    external: true" >> tests/compose/core/docker-compose.yml
+
       - name: Test core suite
         run: |
-          python tests/compose/test.py core 2
+          CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py core 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -413,8 +418,8 @@ jobs:
         if: ${{ env.BRANCH == 'staging' }}
         shell: bash
         run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV          
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV          
+          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
+          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
       - name: Derive PINNED_MAILU_VERSION for master
         if: ${{ env.BRANCH == 'master' }}
         shell: bash
@@ -438,11 +443,15 @@ jobs:
         run: docker images
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
-      - name: Copy all certs
-        run: sudo -- sh -c 'mkdir -p /mailu && cp -r tests/certs /mailu && chmod 600 /mailu/certs/*'
+      - name: Prepare cert volume
+        run: |
+          bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
+          echo "volumes:" >> tests/compose/fetchmail/docker-compose.yml
+          echo "  certs-${{ github.job }}:" >> tests/compose/fetchmail/docker-compose.yml
+          echo "    external: true" >> tests/compose/fetchmail/docker-compose.yml
       - name: Test fetch
         run: |
-          python tests/compose/test.py fetchmail 2
+          CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py fetchmail 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -507,8 +516,8 @@ jobs:
         if: ${{ env.BRANCH == 'staging' }}
         shell: bash
         run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV          
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV          
+          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
+          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
       - name: Derive PINNED_MAILU_VERSION for master
         if: ${{ env.BRANCH == 'master' }}
         shell: bash
@@ -532,11 +541,15 @@ jobs:
         run: docker images
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
-      - name: Copy all certs
-        run: sudo -- sh -c 'mkdir -p /mailu && cp -r tests/certs /mailu && chmod 600 /mailu/certs/*'
+      - name: Prepare cert volume
+        run: |
+          bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
+          echo "volumes:" >> tests/compose/filters/docker-compose.yml
+          echo "  certs-${{ github.job }}:" >> tests/compose/filters/docker-compose.yml
+          echo "    external: true" >> tests/compose/filters/docker-compose.yml
       - name: Test clamvav
         run: |
-          python tests/compose/test.py filters 3
+          CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py filters 3
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -601,8 +614,8 @@ jobs:
         if: ${{ env.BRANCH == 'staging' }}
         shell: bash
         run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV          
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV          
+          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
+          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
       - name: Derive PINNED_MAILU_VERSION for master
         if: ${{ env.BRANCH == 'master' }}
         shell: bash
@@ -626,11 +639,15 @@ jobs:
         run: docker images
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
-      - name: Copy all certs
-        run: sudo -- sh -c 'mkdir -p /mailu && cp -r tests/certs /mailu && chmod 600 /mailu/certs/*'
+      - name: Prepare cert volume
+        run: |
+          bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
+          echo "volumes:" >> tests/compose/rainloop/docker-compose.yml
+          echo "  certs-${{ github.job }}:" >> tests/compose/rainloop/docker-compose.yml
+          echo "    external: true" >> tests/compose/rainloop/docker-compose.yml
       - name: Test rainloop
         run: |
-          python tests/compose/test.py rainloop 2
+          CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py rainloop 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -695,8 +712,8 @@ jobs:
         if: ${{ env.BRANCH == 'staging' }}
         shell: bash
         run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV          
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV          
+          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
+          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
       - name: Derive PINNED_MAILU_VERSION for master
         if: ${{ env.BRANCH == 'master' }}
         shell: bash
@@ -720,11 +737,15 @@ jobs:
         run: docker images
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
-      - name: Copy all certs
-        run: sudo -- sh -c 'mkdir -p /mailu && cp -r tests/certs /mailu && chmod 600 /mailu/certs/*'
+      - name: Prepare cert volume
+        run: |
+          bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
+          echo "volumes:" >> tests/compose/roundcube/docker-compose.yml
+          echo "  certs-${{ github.job }}:" >> tests/compose/roundcube/docker-compose.yml
+          echo "    external: true" >> tests/compose/roundcube/docker-compose.yml
       - name: Test roundcube
         run: |
-          python tests/compose/test.py roundcube 2
+          CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py roundcube 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -789,8 +810,8 @@ jobs:
         if: ${{ env.BRANCH == 'staging' }}
         shell: bash
         run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV          
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV          
+          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
+          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
       - name: Derive PINNED_MAILU_VERSION for master
         if: ${{ env.BRANCH == 'master' }}
         shell: bash
@@ -814,11 +835,15 @@ jobs:
         run: docker images
       - name: Install python packages
         run: python3 -m pip install -r tests/requirements.txt
-      - name: Copy all certs
-        run: sudo -- sh -c 'mkdir -p /mailu && cp -r tests/certs /mailu && chmod 600 /mailu/certs/*'
+      - name: Prepare cert volume
+        run: |
+          bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
+          echo "volumes:" >> tests/compose/webdav/docker-compose.yml
+          echo "  certs-${{ github.job }}:" >> tests/compose/webdav/docker-compose.yml
+          echo "    external: true" >> tests/compose/webdav/docker-compose.yml
       - name: Test webdav
         run: |
-          python tests/compose/test.py webdav 2
+          CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py webdav 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -881,8 +906,8 @@ jobs:
         if: ${{ env.BRANCH == 'staging' }}
         shell: bash
         run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV          
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV          
+          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
+          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
       - name: Derive PINNED_MAILU_VERSION for master
         if: ${{ env.BRANCH == 'master' }}
         shell: bash
@@ -947,7 +972,7 @@ jobs:
           version=$( git tag --sort=version:refname --list "${{ env.MAILU_VERSION }}.*" | tail -1  );root_version=${version%.*};patch_version=${version##*.};if [ "$patch_version" == "" ]; then pinned_version=${{ env.MAILU_VERSION }}.0; else pinned_version=$root_version.$(expr $patch_version + 1); fi;echo "PINNED_MAILU_VERSION=$pinned_version" >> $GITHUB_ENV; echo "PINNED_MAILU_ARCH_VERSION=${pinned_version}_$(uname -m)" >> $GITHUB_ENV
       - name: Create tag for branch x.y.
         if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'staging' && env.BRANCH != 'master' && env.PINNED_MAILU_VERSION != '' }}
-        shell: bash     
+        shell: bash
         run: |
           echo git tag ${{ env.PINNED_MAILU_VERSION }} $(/usr/bin/git rev-parse HEAD)
           git tag ${{ env.PINNED_MAILU_VERSION }} $(/usr/bin/git rev-parse HEAD)

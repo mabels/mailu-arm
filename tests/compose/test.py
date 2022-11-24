@@ -12,7 +12,7 @@ timeout=int(sys.argv[2])
 test_path="tests/compose/" + test_name + "/"
 compose_file=test_path + "docker-compose.yml"
 
-base_url = 'unix://var/run/docker.sock'
+base_url = 'unix:///var/run/docker.sock'
 if os.environ.get('DOCKER_HOST') is not None:
     base_url = os.environ.get('DOCKER_HOST')
 
