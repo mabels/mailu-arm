@@ -256,10 +256,8 @@ jobs:
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
           DOCKER_ORG: ${{ env.DOCKER_ORG }}
         run: docker-compose -f tests/build.yml build
-      - name: Load docker images
-        run: docker images
-#     - name: Save all docker images
-#       run: docker save ${{ env.DOCKER_ORG }}/admin ${{ env.DOCKER_ORG }}/clamav ${{ env.DOCKER_ORG }}/docs ${{ env.DOCKER_ORG }}/dovecot ${{ env.DOCKER_ORG }}/fetchmail ${{ env.DOCKER_ORG }}/nginx ${{ env.DOCKER_ORG }}/none ${{ env.DOCKER_ORG }}/postfix ${{ env.DOCKER_ORG }}/radicale ${{ env.DOCKER_ORG }}/rainloop ${{ env.DOCKER_ORG }}/roundcube ${{ env.DOCKER_ORG }}/rspamd ${{ env.DOCKER_ORG }}/setup ${{ env.DOCKER_ORG }}/traefik-certdumper ${{ env.DOCKER_ORG }}/unbound -o /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Save all docker images
+        run: docker save ${{ env.DOCKER_ORG }}/admin ${{ env.DOCKER_ORG }}/clamav ${{ env.DOCKER_ORG }}/docs ${{ env.DOCKER_ORG }}/dovecot ${{ env.DOCKER_ORG }}/fetchmail ${{ env.DOCKER_ORG }}/nginx ${{ env.DOCKER_ORG }}/none ${{ env.DOCKER_ORG }}/postfix ${{ env.DOCKER_ORG }}/radicale ${{ env.DOCKER_ORG }}/rainloop ${{ env.DOCKER_ORG }}/roundcube ${{ env.DOCKER_ORG }}/rspamd ${{ env.DOCKER_ORG }}/setup ${{ env.DOCKER_ORG }}/traefik-certdumper ${{ env.DOCKER_ORG }}/unbound -o /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
 
   test-core:
     name: Perform core tests
@@ -336,8 +334,8 @@ jobs:
 #       with:
 #         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
 #         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#         run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Load docker images
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Load docker images
         run: docker images
       - name: Install python packages
@@ -435,8 +433,8 @@ jobs:
 #       with:
 #         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
 #         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Load docker images
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Docker images
         run: docker images
       - name: Install python packages
@@ -533,8 +531,8 @@ jobs:
 #       with:
 #         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
 #         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Load docker images
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Docker images
         run: docker images
       - name: Install python packages
@@ -631,8 +629,8 @@ jobs:
 #       with:
 #         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
 #         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Load docker images
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Docker images
         run: docker images
       - name: Install python packages
@@ -729,8 +727,8 @@ jobs:
 #       with:
 #         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
 #         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Load docker images
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Docker images
         run: docker images
       - name: Install python packages
@@ -827,8 +825,8 @@ jobs:
 #       with:
 #         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
 #         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Load docker images
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Docker images
         run: docker images
       - name: Install python packages
@@ -925,10 +923,9 @@ jobs:
 #       with:
 #         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
 #         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#       if: ${{ env.BRANCH != 'staging' }}
-#       run: |
-#         docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
+      - name: Load docker images
+        if: ${{ env.BRANCH != 'staging' }}
+        run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
       - name: Docker images
         run: docker images
       - name: Deploy built docker images
