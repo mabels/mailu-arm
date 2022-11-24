@@ -46,25 +46,28 @@ done
 
 cat > /tmp/start.sh <<EOF1
 #!/bin/bash
-mv /usr/bin/docker /usr/bin/docker-orig
-cat > /usr/bin/docker <<EOF3
-#!/bin/bash
-export DOCKER_HOST=$DOCKER_HOST
-exec /usr/bin/docker-orig \\\$@
-EOF3
-mv /usr/bin/docker-compose /usr/bin/docker-compose-orig
-cat > /usr/bin/docker-compose <<EOF4
-#!/bin/bash
-export DOCKER_HOST=$DOCKER_HOST
-exec /usr/bin/docker-compose-orig \\\$@
-EOF4
-cat > /usr/bin/docker-host-env <<EOF3
-#!/bin/bash
-echo "$DOCKER_HOST"
-export DOCKER_HOST=$DOCKER_HOST
-EOF3
-chmod +x /usr/bin/docker /usr/bin/docker-compose /usr/bin/docker-host-env
-echo "DOCKER_HOST=$DOCKER_HOST"
+#mv /usr/bin/docker /usr/bin/docker-orig
+#cat > /usr/bin/docker <<EOF3
+##!/bin/bash
+#export DOCKER_HOST=$DOCKER_HOST
+#exec /usr/bin/docker-orig \\\$@
+#EOF3
+#mv /usr/bin/docker-compose /usr/bin/docker-compose-orig
+#cat > /usr/bin/docker-compose <<EOF4
+##!/bin/bash
+#export DOCKER_HOST=$DOCKER_HOST
+#exec /usr/bin/docker-compose-orig \\\$@
+#EOF4
+#cat > /usr/bin/docker-host-env <<EOF3
+##!/bin/bash
+#echo "$DOCKER_HOST"
+#export DOCKER_HOST=$DOCKER_HOST
+#EOF3
+#chmod +x /usr/bin/docker /usr/bin/docker-compose /usr/bin/docker-host-env
+#echo "DOCKER_HOST=$DOCKER_HOST"
+unset DOCKER_HOST
+/usr/bin/dockerd --host=unix:///var/run/docker.sock &
+sleep 1
 docker ps
 docker-compose version
 su runner -c 'cd /home/runner/actions-runner && /home/runner/actions-runner/start-worker.sh ./run.sh'
@@ -72,12 +75,13 @@ EOF1
 apt install -y parallel
 cat > /docker-run.sh <<EOF3
 #!/bin/bash -x
-id=$(cat /dev/urandom | tr -dc '[:alpha:]' | fold -w ${1:-10} | head -n 1)
+id=\$(cat /dev/urandom | tr -dc '[:alpha:]' | fold -w \${1:-10} | head -n 1)
 exec docker run \
+             --privileged \
              -v /tmp/start.sh:/tmp/start.sh \
              -e DOCKER_HOST=$DOCKER_HOST \
              -e GITHUB_ACCESS_TOKEN="$GITHUB_ACCESS_TOKEN" \
-             -e RUNNER_NAME="dp-$ARCH-$REV-$id --ephemeral" \
+             -e RUNNER_NAME="dp-$ARCH-$REV-\$id --ephemeral" \
              -e CONFIG_OPTS="--ephemeral" \
              -e RUNNER_LABELS="$REV" \
              -e RUNNER_REPOSITORY_URL=https://github.com/${USER}/${PROJECT} \

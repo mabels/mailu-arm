@@ -46,7 +46,7 @@ build = yaml.full_load(fcontent)
 for name, val in build['services'].items():
     res = subprocess.run(['bash', '-c', f"echo -n {val['image']}"], stdout=subprocess.PIPE).stdout.decode('utf-8')
     #print(res)
-    dst_image = f"{':'.join(res.split(':')[:-1])}:lastest"
+    dst_image = f"{':'.join(res.split(':')[:-1])}:{args.tag}"
     print(yaml.dump(generate_manifest(dst_image=dst_image, src_image=res)))
     #bash -c "echo \"${DOCKER_ORG:-mailu}/${DOCKER_PREFIX:-}nginx:${PINNED_MAILU_ARCH_VERSION:-local}\""
 #mailu/nginx:local
