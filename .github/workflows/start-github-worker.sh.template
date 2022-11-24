@@ -73,9 +73,10 @@ chmod +x /usr/bin/docker-host-env
 unset DOCKER_HOST
 /usr/bin/dockerd --host=unix:///var/run/docker.sock &
 sleep 1
-chmod 666 /var/run/docker.sock
 docker ps
 docker-compose version
+usermod -a -G docker runner
+su runner -c 'id; docker ps; docker-compose version'
 su runner -c 'cd /home/runner/actions-runner && /home/runner/actions-runner/start-worker.sh ./run.sh'
 EOF1
 apt install -y parallel
