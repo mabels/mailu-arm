@@ -72,11 +72,12 @@ EOF1
 apt install -y parallel
 cat > /docker-run.sh <<EOF3
 #!/bin/bash -x
+id=$(cat /dev/urandom | tr -dc '[:alpha:]' | fold -w ${1:-10} | head -n 1)
 exec docker run \
              -v /tmp/start.sh:/tmp/start.sh \
              -e DOCKER_HOST=$DOCKER_HOST \
              -e GITHUB_ACCESS_TOKEN="$GITHUB_ACCESS_TOKEN" \
-             -e RUNNER_NAME="dp-$ARCH-$REV-$1 --ephemeral" \
+             -e RUNNER_NAME="dp-$ARCH-$REV-$id --ephemeral" \
              -e CONFIG_OPTS="--ephemeral" \
              -e RUNNER_LABELS="$REV" \
              -e RUNNER_REPOSITORY_URL=https://github.com/${USER}/${PROJECT} \
@@ -90,7 +91,7 @@ do
   retVal=$?
   if [ $retVal -eq 0 ]
   then
-	seq 16 | parallel -j 8 --pipe /docker-run.sh '{}'
+	seq 100 | parallel -j 8 --pipe /docker-run.sh
   fi
   sleep 1
 done

@@ -277,8 +277,6 @@ jobs:
       - name: set docker host
         shell: bash
         run: |
-          ls -la /usr/bin/docker*
-          /usr/bin/docker-host-env
           echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
           cat $GITHUB_ENV
 
@@ -353,7 +351,7 @@ jobs:
 
       - name: Test core suite
         run: |
-          CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py core 2
+          MAILU_BASE=/mailu-core CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py core 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -451,7 +449,7 @@ jobs:
           echo "    external: true" >> tests/compose/fetchmail/docker-compose.yml
       - name: Test fetch
         run: |
-          CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py fetchmail 2
+          MAILU_BASE=/mailu-fetchmail CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py fetchmail 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -549,7 +547,7 @@ jobs:
           echo "    external: true" >> tests/compose/filters/docker-compose.yml
       - name: Test clamvav
         run: |
-          CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py filters 3
+          MAILU_BASE=/mailu-filters CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py filters 3
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -647,7 +645,7 @@ jobs:
           echo "    external: true" >> tests/compose/rainloop/docker-compose.yml
       - name: Test rainloop
         run: |
-          CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py rainloop 2
+          MAILU_BASE=/mailu-rainloop CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py rainloop 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -745,7 +743,7 @@ jobs:
           echo "    external: true" >> tests/compose/roundcube/docker-compose.yml
       - name: Test roundcube
         run: |
-          CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py roundcube 2
+          MAILU_BASE=/mailu-roundcube CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py roundcube 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -843,7 +841,7 @@ jobs:
           echo "    external: true" >> tests/compose/webdav/docker-compose.yml
       - name: Test webdav
         run: |
-          CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py webdav 2
+          MAILU_BASE=/mailu-webdav CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py webdav 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -957,6 +955,13 @@ jobs:
         shell: bash
         run: |
           echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
+      - name: Write Manifest
+        shell: bash
+        run: |
+          python3 .github/workflows/generate-manifest.py  --image doof --tag meno --src_tag src >x.yaml
+          docker run -v $(pwd)/x.yaml:/x.yaml --rm mplatform/manifest-tool push from-spec ./x.yaml
+
       - name: Derive MAILU_VERSION amd DOCKER_ORG
         if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'staging' && env.BRANCH != 'master' }}
         shell: bash
