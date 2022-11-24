@@ -69,6 +69,7 @@ export DOCKER_HOST=$DOCKER_HOST
 EOF3
 #chmod +x /usr/bin/docker /usr/bin/docker-compose /usr/bin/docker-host-env
 chmod +x /usr/bin/docker-host-env
+chmod -R 777 /images
 #echo "DOCKER_HOST=$DOCKER_HOST"
 unset DOCKER_HOST
 /usr/bin/dockerd --host=unix:///var/run/docker.sock &
@@ -84,7 +85,7 @@ cat > /docker-run.sh <<EOF3
 #!/bin/bash -x
 id=\$(cat /dev/urandom | tr -dc '[:alpha:]' | fold -w \${1:-10} | head -n 1)
 mkdir -p /images 
-chown -R 777 /images
+chmod -R 777 /images
 exec docker run \
              --privileged \
              -v /tmp/start.sh:/tmp/start.sh \
