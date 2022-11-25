@@ -111,7 +111,7 @@ jobs:
         name: Wait for Public IP
         run: |
             publicIp=""
-            while [ -z "publicIp" ]
+            while [ -z "$publicIp" ]
             do
               publicIp=$(oci  compute instance list-vnics --instance-id $instanceId | jq -r '.data[0]."public-ip"' || true)
               echo "Waiting: "$publicIp
