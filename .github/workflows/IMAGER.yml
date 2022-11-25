@@ -170,7 +170,7 @@ jobs:
     if: always()
     needs:
       - prepare
-      - wait-for-image
+      - build
     steps:
       - uses: actions/checkout@v3
 
