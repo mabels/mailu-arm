@@ -122,10 +122,11 @@ jobs:
       - shell: bash
         name: Wait for Ready
         run: |
+            which nc
             ready=1
             while [ "$ready" -ne 0 ]
             do
-              nc $publicIp 22 < /dev/null | grep '^SSH'
+              echo quit | nc -w 3 $publicIp 22 | grep '^SSH'
               if [ "$?"  -eq 0 ]
               then
                 ready=0
@@ -139,7 +140,7 @@ jobs:
             ready=1
             while [ "$ready" -ne 0 ]
             do
-              nc $publicIp 22 < /dev/null | grep '^SSH'
+              echo quit | nc -w 3 $publicIp 22 | grep '^SSH'
               if [ "$?"  -ne 0 ]
               then
                 ready=0
