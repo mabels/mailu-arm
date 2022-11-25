@@ -103,7 +103,9 @@ jobs:
       - name: get instance id ${{ matrix.arch }}
         shell: bash
         run: |
+            ls -la
             echo instanceId=$(jq -r '.data.id' < oci.${{ matrix.unamem }}.*.worker) >> $GITHUB_ENV
+            cat $GITHUB_ENV
 
       - shell: bash
         name: Wait for Public IP
