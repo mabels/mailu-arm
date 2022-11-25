@@ -123,28 +123,22 @@ jobs:
         name: Wait for Ready
         run: |
             which nc
-            ready=1
-            while [ "$ready" -ne 0 ]
+            ready="not-ready"
+            while [ "$ready" != "ready" ]
             do
-              echo quit | nc -w 3 $publicIp 22 | grep '^SSH'
-              if [ "$?"  -eq 0 ]
-              then
-                ready=0
-              fi
+              ready=$((echo quit | nc -w 3 $publicIp 22 | grep -q '^SSH' && echo 'ready') || echo 'not-ready')
+              echo "Test:"$ready
               sleep 5
             done
 
       - shell: bash
         name: Wait for Shutdown
         run: |
-            ready=1
-            while [ "$ready" -ne 0 ]
+            ready="ready"
+            while [ "$ready" != "not-ready" ]
             do
-              echo quit | nc -w 3 $publicIp 22 | grep '^SSH'
-              if [ "$?"  -ne 0 ]
-              then
-                ready=0
-              fi
+              ready=$((echo quit | nc -w 3 $publicIp 22 | grep -q '^SSH' && echo 'ready') || echo 'not-ready')
+              echo "Test:"$ready
               sleep 5
             done
             sleep 20
