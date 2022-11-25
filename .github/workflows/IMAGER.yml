@@ -42,23 +42,127 @@ jobs:
           eval $(neckless kv ls --ghAddMask  --shKeyValue GITHUB_ACCESS_TOKEN)
           bash .github/workflows/imager-oci-github-worker.sh x86_64
           bash .github/workflows/imager-oci-github-worker.sh aarch64
+
           for i in $(find . -name "oci.*.worker")
           do
-            echo "Special OCI-Worker instances: $worker -- $(jq -r '.data.id' < $i)"
+            instanceId=$(jq -r '.data.id' < $i)
+            echo "$instanceId"
           done
-          #aws sts get-caller-identity
-          #bash .github/workflows/run-ec2-github-worker.sh "${{github.sha}}" x86_64
-          #bash .github/workflows/run-ec2-github-worker.sh "${{github.sha}}" aarch64
-          #for i in $(find . -name "ec2.*.worker")
-          #do
-          #  echo "Special EC2-Worker instances: $worker -- $(jq -r '.Instances[0].InstanceId' < $i)"
-          #done
 
-      - name: worker-cleanup
+      - name: workers
         uses: actions/upload-artifact@v3
         with:
-          name: worker-cleanup
+          name: workers
           path: ./*.worker
+
+  build:
+    name: Build images
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - unamem: aarch64
+            arch: arm64
+          - unamem: x86_64
+            arch: amd64
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # fetch-depth 0 is required to also retrieve all tags.
+          fetch-depth: 0
+
+      - uses: mabels/neckless@main
+        with:
+          version: v0.1.15
+
+      - shell: bash
+        name: OCI Write Config and Key File
+        env:
+          NECKLESS_PRIVKEY: ${{ secrets.NECKLESS_PRIVKEY }}
+        run: |
+          mkdir -p .oci
+          neckless kv ls OCI_KEY_FILE@.oci/instances_oci_api_key.pem --rawValue
+          eval $(neckless kv ls OCI_CONFIG --shEvalKeyValue)
+          echo -e "$OCI_CONFIG" > .oci/config
+          unset OCI_CONFIG
+          ls -l .oci
+          cp .github/workflows/oci-via.docker /usr/local/bin/oci
+          chmod +x /usr/local/bin/oci
+          oci --version
+          oci setup repair-file-permissions --file $HOME/.oci/config
+          oci setup repair-file-permissions --file $HOME/.oci/instances_oci_api_key.pem
+
+
+      - name: extract worker-cleanup
+        uses: actions/download-artifact@v3
+        with:
+          name: workers
+
+      - name: get instance id ${{ matrix.arch }}
+        shell: bash
+        run: |
+            echo instanceId=$(jq -r '.data.id' < oci.${{ matrix.unamem }}.*.worker) >> $GITHUB_ENV
+
+      - shell: bash
+        name: Wait for Public IP
+        run: |
+            publicIp=""
+            while [ -z "publicIp" ]
+            do
+              publicIp=$(oci  compute instance list-vnics --instance-id $instanceId | jq -r '.data[0]."public-ip"' || true)
+              echo "Waiting: "$publicIp
+              sleep 5
+            done
+            echo publicIp=$publicIp >> $GITHUB_ENV
+
+      - shell: bash
+        name: Wait for Ready
+        run: |
+            ready=1
+            while [ "$ready" -ne 0 ]
+            do
+              nc $publicIp 22 < /dev/null | grep '^SSH'
+              if [ "$?"  -eq 0 ]
+              then
+                ready=0
+              fi
+              sleep 5
+            done
+
+      - shell: bash
+        name: Wait for Shutdown
+        run: |
+            ready=1
+            while [ "$ready" -ne 0 ]
+            do
+              nc $publicIp 22 < /dev/null | grep '^SSH'
+              if [ "$?"  -ne 0 ]
+              then
+                ready=0
+              fi
+              sleep 5
+            done
+            sleep 20
+
+      - shell: bash
+        name: Send to Stop
+        run: |
+            oci --auth api_key compute instance stop --instance-id $instanceId 
+            imageId=$(oci compute image create  --display-name mailu-${{ matrix.arch }} --instance-id $instanceId | jq -r '.data.id')
+            echo $imageId
+            ready=1
+            while [ $ready -ne 0 ]
+            do
+              state=$(oci compute image get --image-id ocid1.image.oc1.eu-frankfurt-1.aaaaaaaainyt3papdafhbslxvlevwtssxqy63eljcudmdp27exhiuyj32qnq | jq -r '.data."lifecycle-state"')
+              if [ $state = "AVAILABLE" ]
+              then
+                ready = 1
+              else
+                sleep 5
+              fi
+            done
 
   cleanup:
     runs-on: ubuntu-latest
@@ -66,23 +170,14 @@ jobs:
     if: always()
     needs:
       - prepare
-      - build
-      - test-core
-      - test-fetchmail
-      - test-filters
-      - test-rainloop
-      - test-roundcube
-      - test-webdav
-      - deploy
-      - tag-release
-      - ci-success
+      - wait-for-image
     steps:
       - uses: actions/checkout@v3
 
       - name: extract worker-cleanup
         uses: actions/download-artifact@v3
         with:
-          name: worker-cleanup
+          name: workers
 
       - uses: mabels/neckless@main
         with:
@@ -123,848 +218,3 @@ jobs:
               --force || true
           done
 
-  build:
-    name: Build images
-    needs: prepare
-    strategy:
-      matrix:
-        include:
-          - platform: ['self-hosted', 'linux', 'ARM64', '${{github.sha}}']
-            arch: arm64
-          - platform: ['self-hosted', 'linux', 'X64', '${{github.sha}}']
-            arch: amd64
-    runs-on: ${{ matrix.platform }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          # fetch-depth 0 is required to also retrieve all tags.
-          fetch-depth: 0
-
-      - name: set docker host
-        shell: bash
-        run: |
-          ls -la /usr/bin/docker*
-          /usr/bin/docker-host-env
-          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
-          cat $GITHUB_ENV
-
-      - name: verify docker host
-        run: |
-          echo "DOCKER_HOST=$DOCKER_HOST"
-
-      - name: Extract branch name
-        shell: bash
-        run: |
-          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-        #For branch TESTING, we set the image tag to PR-xxxx
-      - name: Derive MAILU_VERSION and PINNED_MAILU_VERSION for branch testing
-        if: ${{ env.BRANCH == 'testing' }}
-        shell: bash
-        env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          DOCKER_ORG_TESTS: ${{ secrets.DOCKER_ORG_TESTS }}
-        run: |
-          echo "MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}_$(uname -m)" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG_TESTS" >> $GITHUB_ENV
-      - name: Derive MAILU_VERSION for other branches than testing
-        if: ${{ env.BRANCH != 'testing' }}
-        shell: bash
-        env:
-          DOCKER_ORG: ${{ secrets.DOCKER_ORG }}
-        run: |
-          echo "MAILU_VERSION=${{ env.BRANCH }}" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for normal release x.y
-        if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'staging' && env.BRANCH != 'master' }}
-        shell: bash
-        run: |
-          echo ">>>>DOCKERHOST:" $DOCKER_HOST
-          echo -n ">>>>DOCKERHOST:" /usr/bin/docker-host-env
-          version=$( git tag --sort=version:refname --list "${{ env.MAILU_VERSION }}.*" | tail -1  );root_version=${version%.*};patch_version=${version##*.};if [ "$patch_version" == "" ]; then pinned_version=${{ env.MAILU_VERSION }}.0; else pinned_version=$root_version.$(expr $patch_version + 1); fi;echo "PINNED_MAILU_VERSION=$pinned_version" >> $GITHUB_ENV; echo "PINNED_MAILU_ARCH_VERSION=${pinned_version}_$(uname -m)" >> $GITHUB_ENV;
-      - name: Derive PINNED_MAILU_VERSION for staging
-        if: ${{ env.BRANCH == 'staging' }}
-        shell: bash
-        run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for master
-        if: ${{ env.BRANCH == 'master' }}
-        shell: bash
-        env:
-          GITHUB_SHA: ${{ env.GITHUB_SHA }}
-        run: |
-          echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=$GITHUB_SHA_$(uname -m)" >> $GITHUB_ENV
-#     - name: Create folder for storing images
-#       run: |
-#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#     - name: Configure images folder for caching
-#       uses: actions/cache@v3
-#       with:
-#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-      - name: Docker images
-        run: docker images
-      - name: Check docker-compose version
-        run: docker-compose -v
-      - name: Login docker
-        env:
-          DOCKER_UN: ${{ secrets.Docker_Login }}
-          DOCKER_PW: ${{ secrets.Docker_Password }}
-          DOCKER_ORG: ${{ env.DOCKER_ORG }}
-        run: echo "$DOCKER_PW" | docker login --username $DOCKER_UN --password-stdin
-      - name: Build all docker images
-        env:
-          MAILU_VERSION: ${{ env.MAILU_VERSION }}
-          PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
-          PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
-          DOCKER_ORG: ${{ env.DOCKER_ORG }}
-        run: docker-compose -f tests/build.yml build
-      - name: Load docker images
-        run: docker images
-#     - name: Save all docker images
-#       run: docker save ${{ env.DOCKER_ORG }}/admin ${{ env.DOCKER_ORG }}/clamav ${{ env.DOCKER_ORG }}/docs ${{ env.DOCKER_ORG }}/dovecot ${{ env.DOCKER_ORG }}/fetchmail ${{ env.DOCKER_ORG }}/nginx ${{ env.DOCKER_ORG }}/none ${{ env.DOCKER_ORG }}/postfix ${{ env.DOCKER_ORG }}/radicale ${{ env.DOCKER_ORG }}/rainloop ${{ env.DOCKER_ORG }}/roundcube ${{ env.DOCKER_ORG }}/rspamd ${{ env.DOCKER_ORG }}/setup ${{ env.DOCKER_ORG }}/traefik-certdumper ${{ env.DOCKER_ORG }}/unbound -o /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
-
-  test-core:
-    name: Perform core tests
-    strategy:
-      matrix:
-        include:
-          - platform: ['self-hosted', 'linux', 'ARM64', '${{github.sha}}']
-            arch: arm64
-          - platform: ['self-hosted', 'linux', 'X64', '${{github.sha}}']
-            arch: amd64
-    runs-on: ${{ matrix.platform }}
-    needs:
-      - build
-    steps:
-      - name: set docker host
-        shell: bash
-        run: |
-          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
-          cat $GITHUB_ENV
-
-      - uses: actions/checkout@v2
-        with:
-          # fetch-depth 0 is required to also retrieve all tags.
-          fetch-depth: 0
-      - name: Extract branch name
-        shell: bash
-        run: |
-          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-        #For branch TESTING, we set the image tag to PR-xxxx
-      - name: Derive MAILU_VERSION and PINNED_MAILU_VERSION for branch testing
-        if: ${{ env.BRANCH == 'testing' }}
-        shell: bash
-        env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          DOCKER_ORG_TESTS: ${{ secrets.DOCKER_ORG_TESTS }}
-        run: |
-          echo "MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}_$(uname -m)" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG_TESTS" >> $GITHUB_ENV
-      - name: Derive MAILU_VERSION for other branches than testing
-        if: ${{ env.BRANCH != 'testing' }}
-        shell: bash
-        env:
-          DOCKER_ORG: ${{ secrets.DOCKER_ORG }}
-        run: |
-          echo "MAILU_VERSION=${{ env.BRANCH }}" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for normal release x.y
-        if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'master' }}
-        shell: bash
-        run: |
-          version=$( git tag --sort=version:refname --list "${{ env.MAILU_VERSION }}.*" | tail -1  );root_version=${version%.*};patch_version=${version##*.};if [ "$patch_version" == "" ]; then pinned_version=${{ env.MAILU_VERSION }}.0; else pinned_version=$root_version.$(expr $patch_version + 1); fi;echo "PINNED_MAILU_VERSION=$pinned_version" >> $GITHUB_ENV; echo "PINNED_MAILU_ARCH_VERSION=${pinned_version}_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for staging
-        if: ${{ env.BRANCH == 'staging' }}
-        shell: bash
-        run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for master
-        if: ${{ env.BRANCH == 'master' }}
-        shell: bash
-        env:
-          GITHUB_SHA: ${{ env.GITHUB_SHA }}
-        run: |
-          echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-#     - name: Create folder for storing images
-#       run: |
-#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#     - name: Configure images folder for caching
-#       uses: actions/cache@v3
-#       with:
-#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#         run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
-      - name: Load docker images
-        run: docker images
-      - name: Install python packages
-        run: python3 -m pip install -r tests/requirements.txt
-      - name: Prepare cert volume
-        run: |
-          bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
-          echo "volumes:" >> tests/compose/core/docker-compose.yml
-          echo "  certs-${{ github.job }}:" >> tests/compose/core/docker-compose.yml
-          echo "    external: true" >> tests/compose/core/docker-compose.yml
-
-      - name: Test core suite
-        run: |
-          MAILU_BASE=/mailu-core/ CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py core 2
-        env:
-          MAILU_VERSION: ${{ env.MAILU_VERSION }}
-          PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
-          PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
-          DOCKER_ORG: ${{ env.DOCKER_ORG }}
-
-  test-fetchmail:
-    name: Perform fetchmail tests
-    strategy:
-      matrix:
-        include:
-          - platform: ['self-hosted', 'linux', 'ARM64', '${{github.sha}}']
-            arch: arm64
-          - platform: ['self-hosted', 'linux', 'X64', '${{github.sha}}']
-            arch: amd64
-    runs-on: ${{ matrix.platform }}
-    needs:
-      - build
-    steps:
-      - name: set docker host
-        shell: bash
-        run: |
-          ls -la /usr/bin/docker*
-          /usr/bin/docker-host-env
-          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
-          cat $GITHUB_ENV
-
-      - uses: actions/checkout@v2
-        with:
-          # fetch-depth 0 is required to also retrieve all tags.
-          fetch-depth: 0
-      - name: Extract branch name
-        shell: bash
-        run: |
-          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-        #For branch TESTING, we set the image tag to PR-xxxx
-      - name: Derive MAILU_VERSION and PINNED_MAILU_VERSION for branch testing
-        if: ${{ env.BRANCH == 'testing' }}
-        shell: bash
-        env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          DOCKER_ORG_TESTS: ${{ secrets.DOCKER_ORG_TESTS }}
-        run: |
-          echo "MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}_$(uname -m)" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG_TESTS" >> $GITHUB_ENV
-      - name: Derive MAILU_VERSION for other branches than testing
-        if: ${{ env.BRANCH != 'testing' }}
-        shell: bash
-        env:
-          DOCKER_ORG: ${{ secrets.DOCKER_ORG }}
-        run: |
-          echo "MAILU_VERSION=${{ env.BRANCH }}" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for normal release x.y
-        if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'master' }}
-        shell: bash
-        run: |
-          version=$( git tag --sort=version:refname --list "${{ env.MAILU_VERSION }}.*" | tail -1  );root_version=${version%.*};patch_version=${version##*.};if [ "$patch_version" == "" ]; then pinned_version=${{ env.MAILU_VERSION }}.0; else pinned_version=$root_version.$(expr $patch_version + 1); fi;echo "PINNED_MAILU_VERSION=$pinned_version" >> $GITHUB_ENV; echo "PINNED_MAILU_ARCH_VERSION=${pinned_version}_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for staging
-        if: ${{ env.BRANCH == 'staging' }}
-        shell: bash
-        run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for master
-        if: ${{ env.BRANCH == 'master' }}
-        shell: bash
-        env:
-          GITHUB_SHA: ${{ env.GITHUB_SHA }}
-        run: |
-          echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-#     - name: Create folder for storing images
-#       run: |
-#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#     - name: Configure images folder for caching
-#       uses: actions/cache@v3
-#       with:
-#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
-      - name: Docker images
-        run: docker images
-      - name: Install python packages
-        run: python3 -m pip install -r tests/requirements.txt
-      - name: Prepare cert volume
-        run: |
-          bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
-          echo "volumes:" >> tests/compose/fetchmail/docker-compose.yml
-          echo "  certs-${{ github.job }}:" >> tests/compose/fetchmail/docker-compose.yml
-          echo "    external: true" >> tests/compose/fetchmail/docker-compose.yml
-      - name: Test fetch
-        run: |
-          MAILU_BASE=/mailu-fetchmail/ CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py fetchmail 2
-        env:
-          MAILU_VERSION: ${{ env.MAILU_VERSION }}
-          PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
-          PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
-          DOCKER_ORG: ${{ env.DOCKER_ORG }}
-
-  test-filters:
-    name: Perform filter tests
-    strategy:
-      matrix:
-        include:
-          - platform: ['self-hosted', 'linux', 'ARM64', '${{github.sha}}']
-            arch: arm64
-          - platform: ['self-hosted', 'linux', 'X64', '${{github.sha}}']
-            arch: amd64
-    runs-on: ${{ matrix.platform }}
-    needs:
-      - build
-    steps:
-      - name: set docker host
-        shell: bash
-        run: |
-          ls -la /usr/bin/docker*
-          /usr/bin/docker-host-env
-          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
-          cat $GITHUB_ENV
-
-      - uses: actions/checkout@v2
-        with:
-          # fetch-depth 0 is required to also retrieve all tags.
-          fetch-depth: 0
-      - name: Extract branch name
-        shell: bash
-        run: |
-          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-        #For branch TESTING, we set the image tag to PR-xxxx
-      - name: Derive MAILU_VERSION and PINNED_MAILU_VERSION for branch testing
-        if: ${{ env.BRANCH == 'testing' }}
-        shell: bash
-        env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          DOCKER_ORG_TESTS: ${{ secrets.DOCKER_ORG_TESTS }}
-        run: |
-          echo "MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}_$(uname -m)" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG_TESTS" >> $GITHUB_ENV
-      - name: Derive MAILU_VERSION for other branches than testing
-        if: ${{ env.BRANCH != 'testing' }}
-        shell: bash
-        env:
-          DOCKER_ORG: ${{ secrets.DOCKER_ORG }}
-        run: |
-          echo "MAILU_VERSION=${{ env.BRANCH }}" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for normal release x.y
-        if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'master' }}
-        shell: bash
-        run: |
-          version=$( git tag --sort=version:refname --list "${{ env.MAILU_VERSION }}.*" | tail -1  );root_version=${version%.*};patch_version=${version##*.};if [ "$patch_version" == "" ]; then pinned_version=${{ env.MAILU_VERSION }}.0; else pinned_version=$root_version.$(expr $patch_version + 1); fi;echo "PINNED_MAILU_VERSION=$pinned_version" >> $GITHUB_ENV; echo "PINNED_MAILU_ARCH_VERSION=${pinned_version}_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for staging
-        if: ${{ env.BRANCH == 'staging' }}
-        shell: bash
-        run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for master
-        if: ${{ env.BRANCH == 'master' }}
-        shell: bash
-        env:
-          GITHUB_SHA: ${{ env.GITHUB_SHA }}
-        run: |
-          echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-#     - name: Create folder for storing images
-#       run: |
-#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#     - name: Configure images folder for caching
-#       uses: actions/cache@v3
-#       with:
-#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
-      - name: Docker images
-        run: docker images
-      - name: Install python packages
-        run: python3 -m pip install -r tests/requirements.txt
-      - name: Prepare cert volume
-        run: |
-          bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
-          echo "volumes:" >> tests/compose/filters/docker-compose.yml
-          echo "  certs-${{ github.job }}:" >> tests/compose/filters/docker-compose.yml
-          echo "    external: true" >> tests/compose/filters/docker-compose.yml
-      - name: Test clamvav
-        run: |
-          MAILU_BASE=/mailu-filters/ CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py filters 3
-        env:
-          MAILU_VERSION: ${{ env.MAILU_VERSION }}
-          PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
-          PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
-          DOCKER_ORG: ${{ env.DOCKER_ORG }}
-
-  test-rainloop:
-    name: Perform rainloop tests
-    strategy:
-      matrix:
-        include:
-          - platform: ['self-hosted', 'linux', 'ARM64', '${{github.sha}}']
-            arch: arm64
-          - platform: ['self-hosted', 'linux', 'X64', '${{github.sha}}']
-            arch: amd64
-    runs-on: ${{ matrix.platform }}
-    needs:
-      - build
-    steps:
-      - name: set docker host
-        shell: bash
-        run: |
-          ls -la /usr/bin/docker*
-          /usr/bin/docker-host-env
-          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
-          cat $GITHUB_ENV
-
-      - uses: actions/checkout@v2
-        with:
-          # fetch-depth 0 is required to also retrieve all tags.
-          fetch-depth: 0
-      - name: Extract branch name
-        shell: bash
-        run: |
-          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-        #For branch TESTING, we set the image tag to PR-xxxx
-      - name: Derive MAILU_VERSION and PINNED_MAILU_VERSION for branch testing
-        if: ${{ env.BRANCH == 'testing' }}
-        shell: bash
-        env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          DOCKER_ORG_TESTS: ${{ secrets.DOCKER_ORG_TESTS }}
-        run: |
-          echo "MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}_$(uname -m)" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG_TESTS" >> $GITHUB_ENV
-      - name: Derive MAILU_VERSION for other branches than testing
-        if: ${{ env.BRANCH != 'testing' }}
-        shell: bash
-        env:
-          DOCKER_ORG: ${{ secrets.DOCKER_ORG }}
-        run: |
-          echo "MAILU_VERSION=${{ env.BRANCH }}" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for normal release x.y
-        if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'master' }}
-        shell: bash
-        run: |
-          version=$( git tag --sort=version:refname --list "${{ env.MAILU_VERSION }}.*" | tail -1  );root_version=${version%.*};patch_version=${version##*.};if [ "$patch_version" == "" ]; then pinned_version=${{ env.MAILU_VERSION }}.0; else pinned_version=$root_version.$(expr $patch_version + 1); fi;echo "PINNED_MAILU_VERSION=$pinned_version" >> $GITHUB_ENV; echo "PINNED_MAILU_ARCH_VERSION=${pinned_version}_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for staging
-        if: ${{ env.BRANCH == 'staging' }}
-        shell: bash
-        run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for master
-        if: ${{ env.BRANCH == 'master' }}
-        shell: bash
-        env:
-          GITHUB_SHA: ${{ env.GITHUB_SHA }}
-        run: |
-          echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-#     - name: Create folder for storing images
-#       run: |
-#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#     - name: Configure images folder for caching
-#       uses: actions/cache@v3
-#       with:
-#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
-      - name: Docker images
-        run: docker images
-      - name: Install python packages
-        run: python3 -m pip install -r tests/requirements.txt
-      - name: Prepare cert volume
-        run: |
-          bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
-          echo "volumes:" >> tests/compose/rainloop/docker-compose.yml
-          echo "  certs-${{ github.job }}:" >> tests/compose/rainloop/docker-compose.yml
-          echo "    external: true" >> tests/compose/rainloop/docker-compose.yml
-      - name: Test rainloop
-        run: |
-          MAILU_BASE=/mailu-rainloop/ CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py rainloop 2
-        env:
-          MAILU_VERSION: ${{ env.MAILU_VERSION }}
-          PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
-          PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
-          DOCKER_ORG: ${{ env.DOCKER_ORG }}
-
-  test-roundcube:
-    name: Perform roundcube tests
-    strategy:
-      matrix:
-        include:
-          - platform: ['self-hosted', 'linux', 'ARM64', '${{github.sha}}']
-            arch: arm64
-          - platform: ['self-hosted', 'linux', 'X64', '${{github.sha}}']
-            arch: amd64
-    runs-on: ${{ matrix.platform }}
-    needs:
-      - build
-    steps:
-      - name: set docker host
-        shell: bash
-        run: |
-          ls -la /usr/bin/docker*
-          /usr/bin/docker-host-env
-          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
-          cat $GITHUB_ENV
-
-      - uses: actions/checkout@v2
-        with:
-          # fetch-depth 0 is required to also retrieve all tags.
-          fetch-depth: 0
-      - name: Extract branch name
-        shell: bash
-        run: |
-          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-        #For branch TESTING, we set the image tag to PR-xxxx
-      - name: Derive MAILU_VERSION and PINNED_MAILU_VERSION for branch testing
-        if: ${{ env.BRANCH == 'testing' }}
-        shell: bash
-        env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          DOCKER_ORG_TESTS: ${{ secrets.DOCKER_ORG_TESTS }}
-        run: |
-          echo "MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}_$(uname -m)" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG_TESTS" >> $GITHUB_ENV
-      - name: Derive MAILU_VERSION for other branches than testing
-        if: ${{ env.BRANCH != 'testing' }}
-        shell: bash
-        env:
-          DOCKER_ORG: ${{ secrets.DOCKER_ORG }}
-        run: |
-          echo "MAILU_VERSION=${{ env.BRANCH }}" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for normal release x.y
-        if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'master' }}
-        shell: bash
-        run: |
-          version=$( git tag --sort=version:refname --list "${{ env.MAILU_VERSION }}.*" | tail -1  );root_version=${version%.*};patch_version=${version##*.};if [ "$patch_version" == "" ]; then pinned_version=${{ env.MAILU_VERSION }}.0; else pinned_version=$root_version.$(expr $patch_version + 1); fi;echo "PINNED_MAILU_VERSION=$pinned_version" >> $GITHUB_ENV; echo "PINNED_MAILU_ARCH_VERSION=${pinned_version}_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for staging
-        if: ${{ env.BRANCH == 'staging' }}
-        shell: bash
-        run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for master
-        if: ${{ env.BRANCH == 'master' }}
-        shell: bash
-        env:
-          GITHUB_SHA: ${{ env.GITHUB_SHA }}
-        run: |
-          echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-#     - name: Create folder for storing images
-#       run: |
-#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#     - name: Configure images folder for caching
-#       uses: actions/cache@v3
-#       with:
-#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
-      - name: Docker images
-        run: docker images
-      - name: Install python packages
-        run: python3 -m pip install -r tests/requirements.txt
-      - name: Prepare cert volume
-        run: |
-          bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
-          echo "volumes:" >> tests/compose/roundcube/docker-compose.yml
-          echo "  certs-${{ github.job }}:" >> tests/compose/roundcube/docker-compose.yml
-          echo "    external: true" >> tests/compose/roundcube/docker-compose.yml
-      - name: Test roundcube
-        run: |
-          MAILU_BASE=/mailu-roundcube/ CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py roundcube 2
-        env:
-          MAILU_VERSION: ${{ env.MAILU_VERSION }}
-          PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
-          PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
-          DOCKER_ORG: ${{ env.DOCKER_ORG }}
-
-  test-webdav:
-    name: Perform webdav tests
-    strategy:
-      matrix:
-        include:
-          - platform: ['self-hosted', 'linux', 'ARM64', '${{github.sha}}']
-            arch: arm64
-          - platform: ['self-hosted', 'linux', 'X64', '${{github.sha}}']
-            arch: amd64
-    runs-on: ${{ matrix.platform }}
-    needs:
-      - build
-    steps:
-      - name: set docker host
-        shell: bash
-        run: |
-          ls -la /usr/bin/docker*
-          /usr/bin/docker-host-env
-          echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
-          cat $GITHUB_ENV
-
-      - uses: actions/checkout@v2
-        with:
-          # fetch-depth 0 is required to also retrieve all tags.
-          fetch-depth: 0
-      - name: Extract branch name
-        shell: bash
-        run: |
-          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-        #For branch TESTING, we set the image tag to PR-xxxx
-      - name: Derive MAILU_VERSION and PINNED_MAILU_VERSION for branch testing
-        if: ${{ env.BRANCH == 'testing' }}
-        shell: bash
-        env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          DOCKER_ORG_TESTS: ${{ secrets.DOCKER_ORG_TESTS }}
-        run: |
-          echo "MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}_$(uname -m)" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG_TESTS" >> $GITHUB_ENV
-      - name: Derive MAILU_VERSION for other branches than testing
-        if: ${{ env.BRANCH != 'testing' }}
-        shell: bash
-        env:
-          DOCKER_ORG: ${{ secrets.DOCKER_ORG }}
-        run: |
-          echo "MAILU_VERSION=${{ env.BRANCH }}" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for normal release x.y
-        if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'master' }}
-        shell: bash
-        run: |
-          version=$( git tag --sort=version:refname --list "${{ env.MAILU_VERSION }}.*" | tail -1  );root_version=${version%.*};patch_version=${version##*.};if [ "$patch_version" == "" ]; then pinned_version=${{ env.MAILU_VERSION }}.0; else pinned_version=$root_version.$(expr $patch_version + 1); fi;echo "PINNED_MAILU_VERSION=$pinned_version" >> $GITHUB_ENV; echo "PINNED_MAILU_ARCH_VERSION=${pinned_version}_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for staging
-        if: ${{ env.BRANCH == 'staging' }}
-        shell: bash
-        run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for master
-        if: ${{ env.BRANCH == 'master' }}
-        shell: bash
-        env:
-          GITHUB_SHA: ${{ env.GITHUB_SHA }}
-        run: |
-          echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
-          echo "PINNED_MAILU_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-#     - name: Create folder for storing images
-#       run: |
-#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#     - name: Configure images folder for caching
-#       uses: actions/cache@v3
-#       with:
-#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#       run: docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
-      - name: Docker images
-        run: docker images
-      - name: Install python packages
-        run: python3 -m pip install -r tests/requirements.txt
-      - name: Prepare cert volume
-        run: |
-          bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
-          echo "volumes:" >> tests/compose/webdav/docker-compose.yml
-          echo "  certs-${{ github.job }}:" >> tests/compose/webdav/docker-compose.yml
-          echo "    external: true" >> tests/compose/webdav/docker-compose.yml
-      - name: Test webdav
-        run: |
-          MAILU_BASE=/mailu-webdav/ CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py webdav 2
-        env:
-          MAILU_VERSION: ${{ env.MAILU_VERSION }}
-          PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
-          PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
-          DOCKER_ORG: ${{ env.DOCKER_ORG }}
-
-  deploy:
-    name: Deploy images
-    strategy:
-      matrix:
-        include:
-          - platform: ['self-hosted', 'linux', 'ARM64', '${{github.sha}}']
-            arch: arm64
-          - platform: ['self-hosted', 'linux', 'X64', '${{github.sha}}']
-            arch: amd64
-    runs-on: ${{ matrix.platform }}
-    needs:
-      - build
-      - test-core
-      - test-fetchmail
-      - test-filters
-      - test-rainloop
-      - test-roundcube
-      - test-webdav
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          # fetch-depth 0 is required to also retrieve all tags.
-          fetch-depth: 0
-      - name: Extract branch name
-        shell: bash
-        run: |
-          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-        #For branch TESTING, we set the image tag to PR-xxxx
-      - name: Derive MAILU_VERSION and PINNED_MAILU_VERSION for branch testing
-        if: ${{ env.BRANCH == 'testing' }}
-        shell: bash
-        env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          DOCKER_ORG_TESTS: ${{ secrets.DOCKER_ORG_TESTS }}
-        run: |
-          echo "MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}_$(uname -m)" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG_TESTS" >> $GITHUB_ENV
-      - name: Derive MAILU_VERSION for other branches than testing
-        if: ${{ env.BRANCH != 'testing' }}
-        shell: bash
-        env:
-          DOCKER_ORG: ${{ secrets.DOCKER_ORG }}
-        run: |
-          echo "MAILU_VERSION=${{ env.BRANCH }}" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for normal release x.y
-        if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'master' }}
-        shell: bash
-        run: |
-          version=$( git tag --sort=version:refname --list "${{ env.MAILU_VERSION }}.*" | tail -1  );root_version=${version%.*};patch_version=${version##*.};if [ "$patch_version" == "" ]; then pinned_version=${{ env.MAILU_VERSION }}.0; else pinned_version=$root_version.$(expr $patch_version + 1); fi;echo "PINNED_MAILU_VERSION=$pinned_version" >> $GITHUB_ENV; echo "PINNED_MAILU_ARCH_VERSION=${pinned_version}_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for staging
-        if: ${{ env.BRANCH == 'staging' }}
-        shell: bash
-        run: |
-          echo "PINNED_MAILU_VERSION=staging" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=staging_$(uname -m)" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for master
-        if: ${{ env.BRANCH == 'master' }}
-        shell: bash
-        env:
-          GITHUB_SHA: ${{ env.GITHUB_SHA }}
-        run: |
-          echo "PINNED_MAILU_VERSION=$GITHUB_SHA" >> $GITHUB_ENV
-          echo "PINNED_MAILU_ARCH_VERSION=${GITHUB_SHA}_$(uname -m)" >> $GITHUB_ENV
-#     - name: Create folder for storing images
-#       run: |
-#         sudo mkdir -p /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         sudo chmod 777 /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#     - name: Configure images folder for caching
-#       # For staging we do not deploy images. So we do not have to load them from cache.
-#       if: ${{ env.BRANCH != 'staging' }}
-#       uses: actions/cache@v3
-#       with:
-#         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
-#         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
-#     - name: Load docker images
-#       if: ${{ env.BRANCH != 'staging' }}
-#       run: |
-#         docker load -i /images-${{ env.PINNED_MAILU_ARCH_VERSION }}/images.tar.gz
-      - name: Docker images
-        run: docker images
-      - name: Deploy built docker images
-        env:
-          DOCKER_UN: ${{ secrets.Docker_Login }}
-          DOCKER_PW: ${{ secrets.Docker_Password }}
-          DOCKER_ORG: ${{ env.DOCKER_ORG }}
-          MAILU_VERSION: ${{ env.MAILU_VERSION }}
-          PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
-          PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
-          BRANCH: ${{ env.BRANCH }}
-        run: bash tests/deploy.sh
-
-  tag-release:
-    runs-on: ubuntu-latest
-    needs:
-      - deploy
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          # fetch-depth 0 is required to also retrieve all tags.
-          fetch-depth: 0
-      - name: Extract branch name
-        shell: bash
-        run: |
-          echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-
-      - name: Write Manifest
-        shell: bash
-        run: |
-          python3 .github/workflows/generate-manifest.py  --image doof --tag meno --src_tag src >x.yaml
-          docker run -v $(pwd)/x.yaml:/x.yaml --rm mplatform/manifest-tool push from-spec ./x.yaml
-
-      - name: Derive MAILU_VERSION amd DOCKER_ORG
-        if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'staging' && env.BRANCH != 'master' }}
-        shell: bash
-        env:
-          DOCKER_ORG: ${{ secrets.DOCKER_ORG }}
-        run: |
-          echo "MAILU_VERSION=${{ env.BRANCH }}" >> $GITHUB_ENV
-          echo "DOCKER_ORG=$DOCKER_ORG" >> $GITHUB_ENV
-      - name: Derive PINNED_MAILU_VERSION for normal release x.y
-        if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'staging' && env.BRANCH != 'master' }}
-        shell: bash
-        run: |
-          version=$( git tag --sort=version:refname --list "${{ env.MAILU_VERSION }}.*" | tail -1  );root_version=${version%.*};patch_version=${version##*.};if [ "$patch_version" == "" ]; then pinned_version=${{ env.MAILU_VERSION }}.0; else pinned_version=$root_version.$(expr $patch_version + 1); fi;echo "PINNED_MAILU_VERSION=$pinned_version" >> $GITHUB_ENV; echo "PINNED_MAILU_ARCH_VERSION=${pinned_version}_$(uname -m)" >> $GITHUB_ENV
-      - name: Create tag for branch x.y.
-        if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'staging' && env.BRANCH != 'master' && env.PINNED_MAILU_VERSION != '' }}
-        shell: bash
-        run: |
-          echo git tag ${{ env.PINNED_MAILU_VERSION }} $(/usr/bin/git rev-parse HEAD)
-          git tag ${{ env.PINNED_MAILU_VERSION }} $(/usr/bin/git rev-parse HEAD)
-          git push origin ${{ env.PINNED_MAILU_VERSION }}
-      - name: Create release for tag x.y.z.
-        if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'staging' && env.BRANCH != 'master' && env.PINNED_MAILU_VERSION != '' }}
-        uses: ncipollo/release-action@v1
-        with:
-          bodyFile: "RELEASE_TEMPLATE.md"
-          tag: ${{ env.PINNED_MAILU_VERSION }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
- # This job is watched by bors. It only complets if building,testing and deploy worked.
-  ci-success:
-    name: CI-Done
-    #Returns true when none of the **previous** steps have failed or have been canceled.
-    if: ${{ success() }}
-    needs:
-      - deploy
-    runs-on: ubuntu-latest
-    steps:
-      - name: CI/CD succeeded.
-        run: exit 0
