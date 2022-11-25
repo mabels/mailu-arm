@@ -40,8 +40,8 @@ jobs:
           NECKLESS_PRIVKEY: ${{ secrets.NECKLESS_PRIVKEY }}
         run: |
           eval $(neckless kv ls --ghAddMask  --shKeyValue GITHUB_ACCESS_TOKEN)
-          bash .github/workflows/imager-oci-github-worker.sh x86_64
-          bash .github/workflows/imager-oci-github-worker.sh aarch64
+          bash .github/workflows/imager-oci-github-worker.sh ${{github.sha}} x86_64
+          bash .github/workflows/imager-oci-github-worker.sh ${{github.sha}} aarch64
 
           for i in $(find . -name "oci.*.worker")
           do
