@@ -40,8 +40,8 @@ jobs:
           NECKLESS_PRIVKEY: ${{ secrets.NECKLESS_PRIVKEY }}
         run: |
           eval $(neckless kv ls --ghAddMask  --shKeyValue GITHUB_ACCESS_TOKEN)
-          bash .github/workflows/imager-oci-github-worker.sh x86_64
-          bash .github/workflows/imager-oci-github-worker.sh aarch64
+          bash .github/workflows/imager-oci-github-worker.sh ${{github.sha}} x86_64
+          bash .github/workflows/imager-oci-github-worker.sh ${{github.sha}} aarch64
 
           for i in $(find . -name "oci.*.worker")
           do
@@ -103,13 +103,15 @@ jobs:
       - name: get instance id ${{ matrix.arch }}
         shell: bash
         run: |
+            ls -la
             echo instanceId=$(jq -r '.data.id' < oci.${{ matrix.unamem }}.*.worker) >> $GITHUB_ENV
+            cat $GITHUB_ENV
 
       - shell: bash
         name: Wait for Public IP
         run: |
             publicIp=""
-            while [ -z "publicIp" ]
+            while [ -z "$publicIp" ]
             do
               publicIp=$(oci  compute instance list-vnics --instance-id $instanceId | jq -r '.data[0]."public-ip"' || true)
               echo "Waiting: "$publicIp
@@ -120,28 +122,23 @@ jobs:
       - shell: bash
         name: Wait for Ready
         run: |
-            ready=1
-            while [ "$ready" -ne 0 ]
+            which nc
+            ready="not-ready"
+            while [ "$ready" != "ready" ]
             do
-              nc $publicIp 22 < /dev/null | grep '^SSH'
-              if [ "$?"  -eq 0 ]
-              then
-                ready=0
-              fi
+              ready=$((echo quit | nc -w 3 $publicIp 22 | grep -q '^SSH' && echo 'ready') || echo 'not-ready')
+              echo "Test:"$ready
               sleep 5
             done
 
       - shell: bash
         name: Wait for Shutdown
         run: |
-            ready=1
-            while [ "$ready" -ne 0 ]
+            ready="ready"
+            while [ "$ready" != "not-ready" ]
             do
-              nc $publicIp 22 < /dev/null | grep '^SSH'
-              if [ "$?"  -ne 0 ]
-              then
-                ready=0
-              fi
+              ready=$((echo quit | nc -w 3 $publicIp 22 | grep -q '^SSH' && echo 'ready') || echo 'not-ready')
+              echo "Test:"$ready
               sleep 5
             done
             sleep 20
@@ -149,7 +146,7 @@ jobs:
       - shell: bash
         name: Send to Stop
         run: |
-            oci --auth api_key compute instance stop --instance-id $instanceId 
+            oci --auth api_key compute instance action --action STOP --instance-id $instanceId 
             imageId=$(oci compute image create  --display-name mailu-${{ matrix.arch }} --instance-id $instanceId | jq -r '.data.id')
             echo $imageId
             ready=1
@@ -170,7 +167,7 @@ jobs:
     if: always()
     needs:
       - prepare
-      - wait-for-image
+      - build
     steps:
       - uses: actions/checkout@v3
 

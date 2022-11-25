@@ -1,5 +1,5 @@
 ARG ARCH=""
-ARG DISTRO_VERSION="3.15"
+ARG DISTRO_VERSION="3.14.5"
 
 # NOTE: only add file if building for arm
 FROM ${ARCH}alpine:${DISTRO_VERSION}

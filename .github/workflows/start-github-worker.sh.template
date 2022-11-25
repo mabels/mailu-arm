@@ -106,7 +106,7 @@ do
   retVal=$?
   if [ $retVal -eq 0 ]
   then
-	seq 100 | parallel -j 8 --pipe /docker-run.sh
+	seq 100 | parallel -j 8 /docker-run.sh
   fi
   sleep 1
 done
