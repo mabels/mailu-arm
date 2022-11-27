@@ -100,12 +100,12 @@ jobs:
     needs:
       - prepare
       - build
-#     - test-core
-#     - test-fetchmail
-#     - test-filters
-#     - test-rainloop
-#     - test-roundcube
-#     - test-webdav
+      - test-core
+      - test-fetchmail
+      - test-filters
+      - test-rainloop
+      - test-roundcube
+      - test-webdav
       - deploy
       - tag-release
       - ci-success
@@ -858,12 +858,12 @@ jobs:
     runs-on: ${{ matrix.platform }}
     needs:
       - build
-#     - test-core
-#     - test-fetchmail
-#     - test-filters
-#     - test-rainloop
-#     - test-roundcube
-#     - test-webdav
+      - test-core
+      - test-fetchmail
+      - test-filters
+      - test-rainloop
+      - test-roundcube
+      - test-webdav
     steps:
       - uses: actions/checkout@v2
         with:
@@ -956,7 +956,7 @@ jobs:
       - name: Write Manifest
         shell: bash
         run: |
-          python3 .github/workflows/generate-manifest.py  --build_yaml ./tests/build.yaml 
+          python3 .github/workflows/generate-manifest.py  --build_yaml ./tests/build.yml 
 
 #         docker run -v $(pwd)/x.yaml:/x.yaml --rm mplatform/manifest-tool push from-spec ./x.yaml
       - name: Derive MAILU_VERSION amd DOCKER_ORG
