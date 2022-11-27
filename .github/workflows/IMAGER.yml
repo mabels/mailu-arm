@@ -146,7 +146,7 @@ jobs:
       - shell: bash
         name: Send to Stop
         run: |
-            oci --auth api_key compute instance action --action STOP --instance-id $instanceId 
+            oci --auth api_key compute instance action --action STOP --instance-id $instanceId  > /dev/null
             imageId=$(oci compute image create  --display-name mailu-${{ matrix.arch }} --instance-id $instanceId | jq -r '.data.id')
             echo $imageId
             ready=1

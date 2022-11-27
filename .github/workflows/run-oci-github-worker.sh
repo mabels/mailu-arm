@@ -92,7 +92,7 @@ compute instance launch  \
 --compartment-id ocid1.tenancy.oc1..aaaaaaaax2n5snd6z7n3ddnnii5x2727bh4zhjzcb7umshzorp4qnp7a2jda \
 --shape-config "$SHAPE" \
 --assign-public-ip true \
---boot-volume-size-in-gbs 120 \
+--boot-volume-size-in-gbs 200 \
 --user-data-file "$HOME/user-data" \
 --is-pv-encryption-in-transit-enabled true \
 --metadata "{\"ssh_authorized_keys\": $(curl https://github.com/mabels.keys | jq -Rsa .)}" \
