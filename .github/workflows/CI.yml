@@ -343,13 +343,13 @@ jobs:
       - name: Prepare cert volume
         run: |
           bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
-          echo "volumes:" >> tests/compose/core/docker-compose.yml
-          echo "  certs-${{ github.job }}:" >> tests/compose/core/docker-compose.yml
-          echo "    external: true" >> tests/compose/core/docker-compose.yml
+          #echo "volumes:" >> tests/compose/core/docker-compose.yml
+          #echo "  certs-${{ github.job }}:" >> tests/compose/core/docker-compose.yml
+          #echo "    external: true" >> tests/compose/core/docker-compose.yml
 
       - name: Test core suite
         run: |
-          MAILU_BASE=/mailu-core/ CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py core 2
+          python tests/compose/test.py core 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -442,12 +442,12 @@ jobs:
       - name: Prepare cert volume
         run: |
           bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
-          echo "volumes:" >> tests/compose/fetchmail/docker-compose.yml
-          echo "  certs-${{ github.job }}:" >> tests/compose/fetchmail/docker-compose.yml
-          echo "    external: true" >> tests/compose/fetchmail/docker-compose.yml
+          #echo "volumes:" >> tests/compose/fetchmail/docker-compose.yml
+          #echo "  certs-${{ github.job }}:" >> tests/compose/fetchmail/docker-compose.yml
+          #echo "    external: true" >> tests/compose/fetchmail/docker-compose.yml
       - name: Test fetch
         run: |
-          MAILU_BASE=/mailu-fetchmail/ CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py fetchmail 2
+          python tests/compose/test.py fetchmail 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -540,12 +540,12 @@ jobs:
       - name: Prepare cert volume
         run: |
           bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
-          echo "volumes:" >> tests/compose/filters/docker-compose.yml
-          echo "  certs-${{ github.job }}:" >> tests/compose/filters/docker-compose.yml
-          echo "    external: true" >> tests/compose/filters/docker-compose.yml
+          #echo "volumes:" >> tests/compose/filters/docker-compose.yml
+          #echo "  certs-${{ github.job }}:" >> tests/compose/filters/docker-compose.yml
+          #echo "    external: true" >> tests/compose/filters/docker-compose.yml
       - name: Test clamvav
         run: |
-          MAILU_BASE=/mailu-filters/ CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py filters 3
+          python tests/compose/test.py filters 3
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -638,12 +638,12 @@ jobs:
       - name: Prepare cert volume
         run: |
           bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
-          echo "volumes:" >> tests/compose/rainloop/docker-compose.yml
-          echo "  certs-${{ github.job }}:" >> tests/compose/rainloop/docker-compose.yml
-          echo "    external: true" >> tests/compose/rainloop/docker-compose.yml
+          #echo "volumes:" >> tests/compose/rainloop/docker-compose.yml
+          #echo "  certs-${{ github.job }}:" >> tests/compose/rainloop/docker-compose.yml
+          #echo "    external: true" >> tests/compose/rainloop/docker-compose.yml
       - name: Test rainloop
         run: |
-          MAILU_BASE=/mailu-rainloop/ CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py rainloop 2
+          python tests/compose/test.py rainloop 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -736,12 +736,12 @@ jobs:
       - name: Prepare cert volume
         run: |
           bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
-          echo "volumes:" >> tests/compose/roundcube/docker-compose.yml
-          echo "  certs-${{ github.job }}:" >> tests/compose/roundcube/docker-compose.yml
-          echo "    external: true" >> tests/compose/roundcube/docker-compose.yml
+          #echo "volumes:" >> tests/compose/roundcube/docker-compose.yml
+          #echo "  certs-${{ github.job }}:" >> tests/compose/roundcube/docker-compose.yml
+          #echo "    external: true" >> tests/compose/roundcube/docker-compose.yml
       - name: Test roundcube
         run: |
-          MAILU_BASE=/mailu-roundcube/ CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py roundcube 2
+          python tests/compose/test.py roundcube 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
@@ -834,12 +834,12 @@ jobs:
       - name: Prepare cert volume
         run: |
           bash .github/workflows/prepare-certs.sh certs-${{ github.job }}
-          echo "volumes:" >> tests/compose/webdav/docker-compose.yml
-          echo "  certs-${{ github.job }}:" >> tests/compose/webdav/docker-compose.yml
-          echo "    external: true" >> tests/compose/webdav/docker-compose.yml
+          #echo "volumes:" >> tests/compose/webdav/docker-compose.yml
+          #echo "  certs-${{ github.job }}:" >> tests/compose/webdav/docker-compose.yml
+          #echo "    external: true" >> tests/compose/webdav/docker-compose.yml
       - name: Test webdav
         run: |
-          MAILU_BASE=/mailu-webdav/ CERT_VOLUME=certs-${{ github.job }} python tests/compose/test.py webdav 2
+          python tests/compose/test.py webdav 2
         env:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
