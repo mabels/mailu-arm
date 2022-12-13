@@ -1,4 +1,7 @@
 #!/bin/sh
+ls -la /
+ls -la /mailu || true
+id
 mkdir -p /mailu/certs
 cp ./tests/certs/* /mailu/certs
 chmod 600 /mailu/certs/*
