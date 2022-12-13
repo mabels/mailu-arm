@@ -58,7 +58,7 @@ jobs:
         with:
           create_credentials_file: 'true'
           workload_identity_provider: 'projects/307390870127/locations/global/workloadIdentityPools/github-action-pool/providers/github-action-provider'
-          service_account: 'gihub-action-service-account@vibrant-mantis-723.iam.gserviceaccount.com'
+          service_account: 'github-action-service-account@vibrant-mantis-723.iam.gserviceaccount.com'
       - id: 'gcloud'
         name: 'gcloud'
         run: |
