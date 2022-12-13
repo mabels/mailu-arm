@@ -1,10 +1,8 @@
-#!/bin/sh
-ls -la /
-ls -la /mailu || true
-id
-mkdir -p /mailu/certs
-cp ./tests/certs/* /mailu/certs
-chmod 600 /mailu/certs/*
+#!/bin/sh -x
+ls -la $MAILU_BASE
+mkdir -p $MAILU_BASE/certs
+cp ./tests/certs/* $MAILU_BASE/certs
+chmod 600 $MAILU_BASE/certs/*
 
 #docker volume create --name $1
 #docker run -d --rm --name dummy-$1 -v $1:/mailu alpine tail -f /dev/null

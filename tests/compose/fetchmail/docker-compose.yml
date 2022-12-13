@@ -31,7 +31,7 @@ services:
       - "127.0.0.1:143:143"
       - "127.0.0.1:993:993"
     volumes:
-      - ${CERT_VOLUME:-/mailu/certs}:/certs:ro
+      - ${MAILU_BASE:-/mailu/}certs:/certs:ro
 
   admin:
     image: ${DOCKER_ORG:-mailu}/${DOCKER_PREFIX:-}admin:${PINNED_MAILU_ARCH_VERSION:-local}

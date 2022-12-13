@@ -181,6 +181,14 @@ jobs:
           echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
           cat $GITHUB_ENV
 
+      - name: set MAILU_BASE
+        shell: bash
+        run: |
+          MAILU_BASE=$(pwd)/.mailu-data/
+          mkdir -p $MAILU_BASE
+          echo "MAILU_BASE=$MAILU_BASE" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
       - name: verify docker host
         run: |
           echo "DOCKER_HOST=$DOCKER_HOST"
@@ -346,6 +354,8 @@ jobs:
           #echo "volumes:" >> tests/compose/core/docker-compose.yml
           #echo "  certs-${{ github.job }}:" >> tests/compose/core/docker-compose.yml
           #echo "    external: true" >> tests/compose/core/docker-compose.yml
+        env:
+          MAILU_BASE: ${{ env.MAILU_BASE }}
 
       - name: Test core suite
         run: |
@@ -355,6 +365,7 @@ jobs:
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
           DOCKER_ORG: ${{ env.DOCKER_ORG }}
+          MAILU_BASE: ${{ env.MAILU_BASE }}
 
   test-fetchmail:
     name: Perform fetchmail tests
@@ -445,6 +456,8 @@ jobs:
           #echo "volumes:" >> tests/compose/fetchmail/docker-compose.yml
           #echo "  certs-${{ github.job }}:" >> tests/compose/fetchmail/docker-compose.yml
           #echo "    external: true" >> tests/compose/fetchmail/docker-compose.yml
+        env:
+          MAILU_BASE: ${{ env.MAILU_BASE }}
       - name: Test fetch
         run: |
           python tests/compose/test.py fetchmail 2
@@ -453,6 +466,7 @@ jobs:
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
           DOCKER_ORG: ${{ env.DOCKER_ORG }}
+          MAILU_BASE: ${{ env.MAILU_BASE }}
 
   test-filters:
     name: Perform filter tests
@@ -543,6 +557,8 @@ jobs:
           #echo "volumes:" >> tests/compose/filters/docker-compose.yml
           #echo "  certs-${{ github.job }}:" >> tests/compose/filters/docker-compose.yml
           #echo "    external: true" >> tests/compose/filters/docker-compose.yml
+        env:
+          MAILU_BASE: ${{ env.MAILU_BASE }}
       - name: Test clamvav
         run: |
           python tests/compose/test.py filters 3
@@ -551,6 +567,7 @@ jobs:
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
           DOCKER_ORG: ${{ env.DOCKER_ORG }}
+          MAILU_BASE: ${{ env.MAILU_BASE }}
 
   test-rainloop:
     name: Perform rainloop tests
@@ -641,6 +658,8 @@ jobs:
           #echo "volumes:" >> tests/compose/rainloop/docker-compose.yml
           #echo "  certs-${{ github.job }}:" >> tests/compose/rainloop/docker-compose.yml
           #echo "    external: true" >> tests/compose/rainloop/docker-compose.yml
+        env:
+          MAILU_BASE: ${{ env.MAILU_BASE }}
       - name: Test rainloop
         run: |
           python tests/compose/test.py rainloop 2
@@ -649,6 +668,7 @@ jobs:
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
           DOCKER_ORG: ${{ env.DOCKER_ORG }}
+          MAILU_BASE: ${{ env.MAILU_BASE }}
 
   test-roundcube:
     name: Perform roundcube tests
@@ -739,6 +759,8 @@ jobs:
           #echo "volumes:" >> tests/compose/roundcube/docker-compose.yml
           #echo "  certs-${{ github.job }}:" >> tests/compose/roundcube/docker-compose.yml
           #echo "    external: true" >> tests/compose/roundcube/docker-compose.yml
+        env:
+          MAILU_BASE: ${{ env.MAILU_BASE }}
       - name: Test roundcube
         run: |
           python tests/compose/test.py roundcube 2
@@ -747,6 +769,7 @@ jobs:
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
           DOCKER_ORG: ${{ env.DOCKER_ORG }}
+          MAILU_BASE: ${{ env.MAILU_BASE }}
 
   test-webdav:
     name: Perform webdav tests
@@ -837,6 +860,8 @@ jobs:
           #echo "volumes:" >> tests/compose/webdav/docker-compose.yml
           #echo "  certs-${{ github.job }}:" >> tests/compose/webdav/docker-compose.yml
           #echo "    external: true" >> tests/compose/webdav/docker-compose.yml
+        env:
+          MAILU_BASE: ${{ env.MAILU_BASE }}
       - name: Test webdav
         run: |
           python tests/compose/test.py webdav 2
@@ -845,6 +870,7 @@ jobs:
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
           DOCKER_ORG: ${{ env.DOCKER_ORG }}
+          MAILU_BASE: ${{ env.MAILU_BASE }}
  
   deploy:
     name: Deploy images
