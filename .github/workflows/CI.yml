@@ -63,10 +63,11 @@ jobs:
         name: 'gcloud'
         run: |
           gcloud auth login --no-browser --brief --cred-file="${{ steps.gcp_auth.outputs.credentials_file_path }}"
+          gcloud auth list
           PROJECT=$(gcloud config list project --format text | awk '{print $2}')
           echo "project id: $PROJECT"
-          TOKEN=$(gcloud auth print-identity-token)
-          curl -s https://www.googleapis.com/oauth2/v1/tokeninfo?id_token=$TOKEN
+          TOKEN=$(gcloud auth print-access-token)
+          curl -s https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=$TOKEN
           gcloud services list
 
       - uses: mabels/neckless@main
