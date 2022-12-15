@@ -1,5 +1,5 @@
 #!/bin/sh -x
-ls -la $MAILU_BASE
+#ls -la $MAILU_BASE
 mkdir -p $MAILU_BASE/certs
 cp ./tests/certs/* $MAILU_BASE/certs
 chmod 600 $MAILU_BASE/certs/*

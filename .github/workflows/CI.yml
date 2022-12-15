@@ -410,6 +410,7 @@ jobs:
         run: |
           python tests/compose/test.py core 2
         env:
+          COMPOSE_HTTP_TIMEOUT: 300
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
@@ -519,6 +520,7 @@ jobs:
         run: |
           python tests/compose/test.py fetchmail 2
         env:
+          COMPOSE_HTTP_TIMEOUT: 300
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
@@ -628,6 +630,7 @@ jobs:
         run: |
           python tests/compose/test.py filters 3
         env:
+          COMPOSE_HTTP_TIMEOUT: 300
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
@@ -737,6 +740,7 @@ jobs:
         run: |
           python tests/compose/test.py rainloop 2
         env:
+          COMPOSE_HTTP_TIMEOUT: 300
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
@@ -846,6 +850,7 @@ jobs:
         run: |
           python tests/compose/test.py roundcube 2
         env:
+          COMPOSE_HTTP_TIMEOUT: 300
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
@@ -955,6 +960,7 @@ jobs:
         run: |
           python tests/compose/test.py webdav 2
         env:
+          COMPOSE_HTTP_TIMEOUT: 300
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
