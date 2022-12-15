@@ -62,16 +62,7 @@ jobs:
       - id: 'gcloud'
         name: 'gcloud'
         run: |
-          gcloud auth login --no-browser --brief --cred-file="${{ steps.gcp_auth.outputs.credentials_file_path }}"
-          gcloud auth list
-          PROJECT=$(gcloud config list project --format text | awk '{print $2}')
-          echo "project id: $PROJECT"
-          #TOKEN=$(gcloud auth print-access-token)
-          #curl -s https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=$TOKEN
-          gcloud compute instances list
-          gcloud compute instances create instance-4 --project=vibrant-mantis-723 --zone=us-central1-a --machine-type=t2a-standard-4 --network-interface=network-tier=PREMIUM,nic-type=GVNIC,subnet=default --maintenance-policy=MIGRATE --provisioning-model=STANDARD --service-account=307390870127-compute@developer.gserviceaccount.com --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append --create-disk=auto-delete=yes,boot=yes,device-name=instance-1,image=projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-arm64-v20221206,mode=rw,size=160,type=projects/vibrant-mantis-723/zones/us-central1-a/diskTypes/pd-balanced --no-shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring --reservation-affinity=any 
-          gcloud compute instances list
-          gcloud compute instances delete instance-4
+          gcloud --quiet auth login --no-browser --brief --cred-file="${{ steps.gcp_auth.outputs.credentials_file_path }}"
 
       - uses: mabels/neckless@main
         with:
@@ -100,11 +91,17 @@ jobs:
           NECKLESS_PRIVKEY: ${{ secrets.NECKLESS_PRIVKEY }}
         run: |
           eval $(neckless kv ls --ghAddMask  --shKeyValue GITHUB_ACCESS_TOKEN)
-          bash .github/workflows/run-oci-github-worker.sh "${{github.sha}}" x86_64
-          bash .github/workflows/run-oci-github-worker.sh "${{github.sha}}" aarch64
-          for i in $(find . -name "oci.*.worker")
+          #bash .github/workflows/run-oci-github-worker.sh "${{github.sha}}" x86_64
+          #bash .github/workflows/run-oci-github-worker.sh "${{github.sha}}" aarch64
+          #for i in $(find . -name "oci.*.worker")
+          #do
+          #  echo "Special OCI-Worker instances: $worker -- $(jq -r '.data.id' < $i)"
+          #done
+          bash .github/workflows/run-gcp-github-worker.sh "${{github.sha}}" x86_64
+          bash .github/workflows/run-gcp-github-worker.sh "${{github.sha}}" aarch64
+          for i in $(find . -name "gcp.*.worker")
           do
-            echo "Special OCI-Worker instances: $worker -- $(jq -r '.data.id' < $i)"
+            echo "Special GCP-Worker instances: $worker -- $(cat $i)"
           done
           #aws sts get-caller-identity
           #bash .github/workflows/run-ec2-github-worker.sh "${{github.sha}}" x86_64
@@ -148,6 +145,18 @@ jobs:
         with:
           version: v0.1.15
 
+      - id: gcp_auth
+        name: 'Authenticate to GCP'
+        uses: 'google-github-actions/auth@v1.0.0'
+        with:
+          create_credentials_file: 'true'
+          workload_identity_provider: 'projects/307390870127/locations/global/workloadIdentityPools/github-action-pool/providers/github-action-provider'
+          service_account: 'github-action-service-account@vibrant-mantis-723.iam.gserviceaccount.com'
+      - id: 'gcloud'
+        name: 'gcloud'
+        run: |
+          gcloud --quiet auth login --no-browser --brief --cred-file="${{ steps.gcp_auth.outputs.credentials_file_path }}"
+
       - shell: bash
         name: OCI Write Config and Key File
         env:
@@ -173,6 +182,11 @@ jobs:
           do
             echo "EC2 to terminate: $i -- $(jq -r '.Instances[0].InstanceId' < $i)" || true
             aws ec2 terminate-instances --instance-ids $(jq -r '.Instances[0].InstanceId' < $i) || true
+          done
+          for i in $(find . -name "gcp.*.worker" -print)
+          do
+            echo "GCP to terminate: $i -- $(cat $i)" || true
+            bash -x $i
           done
           for i in $(find . -name "oci.*.worker" -print)
           do
