@@ -327,6 +327,14 @@ jobs:
           echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
           cat $GITHUB_ENV
 
+      - name: set MAILU_BASE
+        shell: bash
+        run: |
+          MAILU_BASE=$(pwd)/.mailu-data/
+          mkdir -p $MAILU_BASE
+          echo "MAILU_BASE=$MAILU_BASE" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
       - uses: actions/checkout@v2
         with:
           # fetch-depth 0 is required to also retrieve all tags.
@@ -427,6 +435,14 @@ jobs:
           ls -la /usr/bin/docker*
           /usr/bin/docker-host-env
           echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
+      - name: set MAILU_BASE
+        shell: bash
+        run: |
+          MAILU_BASE=$(pwd)/.mailu-data/
+          mkdir -p $MAILU_BASE
+          echo "MAILU_BASE=$MAILU_BASE" >> $GITHUB_ENV
           cat $GITHUB_ENV
 
       - uses: actions/checkout@v2
@@ -530,6 +546,14 @@ jobs:
           echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
           cat $GITHUB_ENV
 
+      - name: set MAILU_BASE
+        shell: bash
+        run: |
+          MAILU_BASE=$(pwd)/.mailu-data/
+          mkdir -p $MAILU_BASE
+          echo "MAILU_BASE=$MAILU_BASE" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
       - uses: actions/checkout@v2
         with:
           # fetch-depth 0 is required to also retrieve all tags.
@@ -629,6 +653,14 @@ jobs:
           ls -la /usr/bin/docker*
           /usr/bin/docker-host-env
           echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
+      - name: set MAILU_BASE
+        shell: bash
+        run: |
+          MAILU_BASE=$(pwd)/.mailu-data/
+          mkdir -p $MAILU_BASE
+          echo "MAILU_BASE=$MAILU_BASE" >> $GITHUB_ENV
           cat $GITHUB_ENV
 
       - uses: actions/checkout@v2
@@ -732,6 +764,14 @@ jobs:
           echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
           cat $GITHUB_ENV
 
+      - name: set MAILU_BASE
+        shell: bash
+        run: |
+          MAILU_BASE=$(pwd)/.mailu-data/
+          mkdir -p $MAILU_BASE
+          echo "MAILU_BASE=$MAILU_BASE" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
       - uses: actions/checkout@v2
         with:
           # fetch-depth 0 is required to also retrieve all tags.
@@ -831,6 +871,14 @@ jobs:
           ls -la /usr/bin/docker*
           /usr/bin/docker-host-env
           echo "DOCKER_HOST=$(/usr/bin/docker-host-env)" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
+      - name: set MAILU_BASE
+        shell: bash
+        run: |
+          MAILU_BASE=$(pwd)/.mailu-data/
+          mkdir -p $MAILU_BASE
+          echo "MAILU_BASE=$MAILU_BASE" >> $GITHUB_ENV
           cat $GITHUB_ENV
 
       - uses: actions/checkout@v2
