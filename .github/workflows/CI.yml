@@ -1047,8 +1047,8 @@ jobs:
       - name: Load docker images
         if: ${{ env.BRANCH != 'staging' }}
         run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
-      - name: Docker images
-        run: docker images
+      #- name: Docker images
+      #  run: docker images
       - name: Deploy built docker images
         env:
           DOCKER_UN: ${{ secrets.Docker_Login }}
@@ -1057,6 +1057,7 @@ jobs:
           MAILU_VERSION: ${{ env.MAILU_VERSION }}
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
+          COMPOSE_HTTP_TIMEOUT: 300
           BRANCH: ${{ env.BRANCH }}
         run: bash tests/deploy.sh
 
