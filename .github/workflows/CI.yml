@@ -15,7 +15,7 @@ concurrency: ci-${{ github.ref }}
 
 permissions:
   id-token: write # This is required for requesting the JWT
-  contents: read  # This is required for actions/checkout
+  contents: write  # This is required for actions/checkout
 
 
 ###############################################
@@ -1074,12 +1074,22 @@ jobs:
         run: |
           echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
+      - name: Login docker
+        env:
+          DOCKER_UN: ${{ secrets.Docker_Login }}
+          DOCKER_PW: ${{ secrets.Docker_Password }}
+          DOCKER_ORG: ${{ env.DOCKER_ORG }}
+        run: echo "$DOCKER_PW" | docker login --username $DOCKER_UN --password-stdin
+
       - name: Write Manifest
         shell: bash
         run: |
-          python3 .github/workflows/generate-manifest.py  --build_yaml ./tests/build.yml 
+          rm -f ./action.sh
+          python3 .github/workflows/generate-manifest.py --build_yaml ./tests/build.yml --tag latest | tee -a ./action.sh
+          python3 .github/workflows/generate-manifest.py --build_yaml ./tests/build.yml --tag $BRANCH | tee -a ./action.sh
+          python3 .github/workflows/generate-manifest.py --build_yaml ./tests/build.yml --tag $PINNED_MAILU_ARCH_VERSION | tee -a ./action.sh
+          bash -x ./action.sh
 
-#         docker run -v $(pwd)/x.yaml:/x.yaml --rm mplatform/manifest-tool push from-spec ./x.yaml
       - name: Derive MAILU_VERSION amd DOCKER_ORG
         if: ${{ env.BRANCH != 'testing' && env.BRANCH != 'staging' && env.BRANCH != 'master' }}
         shell: bash
