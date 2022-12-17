@@ -1075,6 +1075,18 @@ jobs:
         run: |
           echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
+      - name: Derive MAILU_VERSION and PINNED_MAILU_VERSION for branch testing
+        if: ${{ env.BRANCH == 'testing' }}
+        shell: bash
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          DOCKER_ORG_TESTS: ${{ secrets.DOCKER_ORG_TESTS }}
+        run: |
+          echo "MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
+          echo "PINNED_MAILU_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}" >> $GITHUB_ENV
+          echo "PINNED_MAILU_ARCH_VERSION=pr-${COMMIT_MESSAGE//[!0-9]/}_$(uname -m)" >> $GITHUB_ENV
+          echo "DOCKER_ORG=$DOCKER_ORG_TESTS" >> $GITHUB_ENV
+
       - name: Login docker
         env:
           DOCKER_UN: ${{ secrets.Docker_Login }}
