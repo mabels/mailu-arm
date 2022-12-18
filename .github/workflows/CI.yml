@@ -1172,7 +1172,7 @@ jobs:
         shell: bash
         env:
           PINNED_MAILU_VERSION: ${{ env.PINNED_MAILU_VERSION }}
-          PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_ARCH_VERSION }}
+          PINNED_MAILU_ARCH_VERSION: ${{ env.PINNED_MAILU_VERSION }}
           BRANCH: ${{ env.BRANCH }}
         run: |
           rm -f ./action.sh
