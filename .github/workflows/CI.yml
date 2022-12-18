@@ -12,6 +12,8 @@ on:
 
 concurrency: ci-${{ github.ref }}
 
+env:
+  IMAGES_TAR: "/images/images"
 
 permissions:
   id-token: write # This is required for requesting the JWT
@@ -1058,11 +1060,14 @@ jobs:
 #       with:
 #         path: /images-${{ env.PINNED_MAILU_ARCH_VERSION }}
 #         key: ${{ env.BRANCH }}-${{ github.run_id }}-${{ github.run_number }}
+#
       - name: Load docker images
-        if: ${{ env.BRANCH != 'staging' }}
+        if: ${{ env.IMAGES_TAR == '/images/images' }}
         run: docker load -i /images/images-${{ env.PINNED_MAILU_ARCH_VERSION }}.tar.gz
-      #- name: Docker images
-      #  run: docker images
+          #
+      - name: Docker images
+        run: docker images
+
       - name: Deploy built docker images
         env:
           DOCKER_UN: ${{ secrets.Docker_Login }}
