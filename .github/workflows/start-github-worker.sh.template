@@ -84,12 +84,12 @@ apt install -y parallel
 cat > /docker-run.sh <<EOF3
 #!/bin/bash -x
 id=\$(cat /dev/urandom | tr -dc '[:alpha:]' | fold -w \${1:-10} | head -n 1)
-#mkdir -p /images 
-#chmod -R 777 /images
-#-v /images:/images \
+mkdir -p /images
+chmod -R 777 /images
 exec docker run \
              --privileged \
              -v /tmp/start.sh:/tmp/start.sh \
+             -v /images:/images \
              -e DOCKER_HOST=$DOCKER_HOST \
              -e GITHUB_ACCESS_TOKEN="$GITHUB_ACCESS_TOKEN" \
              -e RUNNER_NAME="dp-$ARCH-$REV-\$id" \
