@@ -46,12 +46,13 @@ fcontent = pathlib.Path(args.build_yaml).read_text()
 build = yaml.full_load(fcontent)
 #print(build)
 for name, val in build['services'].items():
-    res = subprocess.run(['bash', '-c', f"echo -n {val['image']}"], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    src_image = subprocess.run(['bash', '-c', f"echo -n {val['image']}"], stdout=subprocess.PIPE).stdout.decode('utf-8')
     src_images=[]
-    dst_image = f"{':'.join(res.split(':')[:-1])}:{args.tag}"
+    #print(f"# {res}")
+    dst_image = f"{':'.join(src_image.split(':')[:-1])}:{args.tag}"
     for arch in ["x86_64", "aarch64"]:
         src_images.append("--amend")
-        src_images.append(f"{dst_image}_{arch}")
+        src_images.append(f"{src_image}_{arch}")
     print(f"docker manifest create {dst_image} {' '.join(src_images)}")
     print(f"docker push {dst_image}")
 

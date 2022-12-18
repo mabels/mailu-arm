@@ -84,16 +84,15 @@ apt install -y parallel
 cat > /docker-run.sh <<EOF3
 #!/bin/bash -x
 id=\$(cat /dev/urandom | tr -dc '[:alpha:]' | fold -w \${1:-10} | head -n 1)
-mkdir -p /images 
-chmod -R 777 /images
+#mkdir -p /images 
+#chmod -R 777 /images
+#-v /images:/images \
 exec docker run \
              --privileged \
              -v /tmp/start.sh:/tmp/start.sh \
-             -v /images:/images \
              -e DOCKER_HOST=$DOCKER_HOST \
              -e GITHUB_ACCESS_TOKEN="$GITHUB_ACCESS_TOKEN" \
-             -e RUNNER_NAME="dp-$ARCH-$REV-\$id --ephemeral" \
-             -e CONFIG_OPTS="--ephemeral" \
+             -e RUNNER_NAME="dp-$ARCH-$REV-\$id" \
              -e RUNNER_LABELS="$REV" \
              -e RUNNER_REPOSITORY_URL=https://github.com/${USER}/${PROJECT} \
              public.ecr.aws/mabels/developers-paradise:$DOCKER_TAG \
@@ -106,7 +105,7 @@ do
   retVal=$?
   if [ $retVal -eq 0 ]
   then
-	seq 100 | parallel -j 2 /docker-run.sh
+	seq 100 | parallel -j 1 /docker-run.sh
   fi
   sleep 1
 done
