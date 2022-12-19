@@ -54,7 +54,7 @@ for name, val in build['services'].items():
         src_images.append("--amend")
         src_images.append(f"{src_image}_{arch}")
     print(f"docker manifest create {dst_image} {' '.join(src_images)}")
-    print(f"docker push {dst_image}")
+    print(f"docker manifest push {dst_image}")
 
 
     #${DOCKER_ORG:-mailu}/${DOCKER_PREFIX:-}setup:${PINNED_MAILU_ARCH_VERSION:-local}
